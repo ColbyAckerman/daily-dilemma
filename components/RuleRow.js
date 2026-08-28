@@ -18,25 +18,21 @@ export function defaultParams(type) {
   return RULE_SPECS[type] ? RULE_SPECS[type]({}) : {};
 }
 
+const num = {
+  type: 'number',
+  className: 'input input--num',
+};
+
 export default function RuleRow({ rule, index, count, onChange, onMove, onRemove }) {
   const p = rule.params || {};
-
-  function setType(type) {
-    onChange({ ...rule, type, params: defaultParams(type) });
-  }
-  function setParam(patch) {
-    onChange({ ...rule, params: { ...p, ...patch } });
-  }
-  function setAction(action) {
-    onChange({ ...rule, action });
-  }
+  const setType = (type) => onChange({ ...rule, type, params: defaultParams(type) });
+  const setParam = (patch) => onChange({ ...rule, params: { ...p, ...patch } });
+  const setAction = (action) => onChange({ ...rule, action });
 
   return (
     <div className="rule">
       <div className="rule__head">
-        <span className="rule__idx mono">
-          {index + 1} / {count}
-        </span>
+        <span className="rule__idx">rule {index + 1} of {count}</span>
         <span style={{ display: 'flex', gap: 6 }}>
           <button
             type="button"
@@ -68,9 +64,10 @@ export default function RuleRow({ rule, index, count, onChange, onMove, onRemove
       </div>
 
       <div className="rule__controls">
+        <span className="rule__kw">if</span>
         <select
           className="input"
-          style={{ flex: '0 0 auto', width: 'auto' }}
+          style={{ flex: '1 1 100%', width: 'auto' }}
           value={rule.type}
           onChange={(e) => setType(e.target.value)}
         >
@@ -82,44 +79,44 @@ export default function RuleRow({ rule, index, count, onChange, onMove, onRemove
         </select>
 
         {(rule.type === 'opp_last' || rule.type === 'my_last') && (
-          <Seg value={p.move} onChange={(m) => setParam({ move: m })} size="sm" />
+          <>
+            <span className="rule__kw">was</span>
+            <Seg value={p.move} onChange={(m) => setParam({ move: m })} />
+          </>
         )}
 
         {rule.type === 'opp_streak' && (
           <>
-            <Seg value={p.move} onChange={(m) => setParam({ move: m })} size="sm" />
-            <label className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-              for last{' '}
-              <input
-                type="number"
-                min="1"
-                max="50"
-                className="input input--num"
-                value={p.n}
-                onChange={(e) => setParam({ n: e.target.value })}
-              />{' '}
-              rounds
-            </label>
+            <span className="rule__kw">was</span>
+            <Seg value={p.move} onChange={(m) => setParam({ move: m })} />
+            <span className="rule__kw">for the last</span>
+            <input
+              {...num}
+              min="1"
+              max="50"
+              value={p.n}
+              onChange={(e) => setParam({ n: e.target.value })}
+            />
+            <span className="rule__kw">rounds</span>
           </>
         )}
 
         {rule.type === 'opp_defect_gte' && (
-          <label className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-            ≥{' '}
+          <>
+            <span className="rule__kw">reaches</span>
             <input
-              type="number"
+              {...num}
               min="1"
               max="999"
-              className="input input--num"
               value={p.n}
               onChange={(e) => setParam({ n: e.target.value })}
-            />{' '}
-            defections
-          </label>
+            />
+          </>
         )}
 
         {rule.type === 'opp_coop_rate' && (
           <>
+            <span className="rule__kw">is</span>
             <select
               className="input"
               style={{ flex: '0 0 auto', width: 'auto' }}
@@ -130,16 +127,13 @@ export default function RuleRow({ rule, index, count, onChange, onMove, onRemove
               <option value="lte">at most</option>
             </select>
             <input
-              type="number"
+              {...num}
               min="0"
               max="100"
-              className="input input--num"
               value={p.pct}
               onChange={(e) => setParam({ pct: e.target.value })}
             />
-            <span className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-              %
-            </span>
+            <span className="rule__kw">%</span>
           </>
         )}
 
@@ -156,10 +150,9 @@ export default function RuleRow({ rule, index, count, onChange, onMove, onRemove
               <option value="multiple">is a multiple of</option>
             </select>
             <input
-              type="number"
+              {...num}
               min="1"
               max="1000"
-              className="input input--num"
               value={p.n}
               onChange={(e) => setParam({ n: e.target.value })}
             />
@@ -167,33 +160,33 @@ export default function RuleRow({ rule, index, count, onChange, onMove, onRemove
         )}
 
         {rule.type === 'random_chance' && (
-          <label className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
+          <>
+            <span className="rule__kw">at</span>
             <input
-              type="number"
+              {...num}
               min="0"
               max="100"
-              className="input input--num"
               value={p.pct}
               onChange={(e) => setParam({ pct: e.target.value })}
-            />{' '}
-            % chance
-          </label>
+            />
+            <span className="rule__kw">%</span>
+          </>
         )}
+      </div>
 
-        <span className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-          →
-        </span>
-        <Seg value={rule.action} onChange={setAction} size="sm" />
+      <div className="rule__controls" style={{ marginTop: 8 }}>
+        <span className="rule__kw">then</span>
+        <Seg value={rule.action} onChange={setAction} />
       </div>
 
       <p className="rule__sentence">
-        “{ruleSentence(normalizeForSentence(rule))} → {rule.action === 'D' ? 'Defect' : 'Cooperate'}”
+        {ruleSentence(normalizeForSentence(rule))} →{' '}
+        <strong>{rule.action === 'D' ? 'Defect' : 'Cooperate'}</strong>
       </p>
     </div>
   );
 }
 
-// Coerce string number inputs to numbers just for the preview sentence.
 function normalizeForSentence(rule) {
   const p = { ...(rule.params || {}) };
   ['n', 'pct'].forEach((k) => {

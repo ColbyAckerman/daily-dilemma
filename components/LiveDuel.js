@@ -216,9 +216,8 @@ export default function LiveDuel() {
   return (
     <div>
       <p className="duel-note">
-        ⚠ Experimental / best-effort. Duels run on 2-second polling, not
-        websockets. If nobody joins within 15 seconds you’re matched with a bot
-        so it always works solo.
+        Experimental. Polled every 2s, not live. No opponent in ~15s → you play a
+        bot.
       </p>
 
       {phase === 'idle' && (
@@ -287,15 +286,11 @@ export default function LiveDuel() {
           )}
 
           <div className="pips" aria-label="Your moves">
-            <span className="eyebrow" style={{ width: '100%' }}>
-              You
-            </span>
+            <span className="k">You</span>
             {my.map((m, i) => PILL(m, 'm' + i))}
           </div>
           <div className="pips" aria-label="Opponent moves">
-            <span className="eyebrow" style={{ width: '100%' }}>
-              {oppName}
-            </span>
+            <span className="k">{oppName}</span>
             {opp.map((m, i) => PILL(m, 'o' + i))}
           </div>
 

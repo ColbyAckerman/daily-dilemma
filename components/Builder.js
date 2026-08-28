@@ -26,7 +26,6 @@ export default function Builder({ state, onFiled }) {
   const [msg, setMsg] = useState(null);
   const loaded = useRef(false);
 
-  // Restore callsign + last draft.
   useEffect(() => {
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
@@ -41,7 +40,6 @@ export default function Builder({ state, onFiled }) {
     loaded.current = true;
   }, []);
 
-  // Persist draft.
   useEffect(() => {
     if (!loaded.current) return;
     try {
@@ -106,15 +104,9 @@ export default function Builder({ state, onFiled }) {
   function runSimulation() {
     setBusy(true);
     setMsg(null);
-    // Let the button paint its disabled state before the sync crunch.
     setTimeout(() => {
       try {
-        const res = simulateDraft(
-          cleaned,
-          state.strategies,
-          state.twist,
-          state.dateStr
-        );
+        const res = simulateDraft(cleaned, state.strategies, state.twist, state.dateStr);
         setResult(res);
       } catch (e) {
         setMsg({ kind: 'err', text: 'Simulation failed: ' + String(e) });
@@ -147,11 +139,10 @@ export default function Builder({ state, onFiled }) {
         setMsg({
           kind: 'ok',
           text: data.updated
-            ? 'Updated your filed strategy. It plays from today onward.'
-            : 'Filed to the arena. It now plays every rival, every day.',
+            ? 'Updated. Your strategy plays from today onward.'
+            : 'Filed. It now plays every rival, every day.',
         });
-        if (data.state) onFiled(data.state);
-        else onFiled(null);
+        onFiled(data.state || null);
       }
     } catch (e) {
       setMsg({ kind: 'err', text: 'Network error while filing.' });
@@ -161,16 +152,7 @@ export default function Builder({ state, onFiled }) {
 
   return (
     <>
-      <section className="panel">
-        <h2 className="panel__title">
-          Strategy Builder
-          <span className="eyebrow">no code</span>
-        </h2>
-        <p className="panel__hint">
-          Rules run top to bottom each round from round 2 onward. The first rule
-          that matches decides the move; if none match, the fallback fires.
-        </p>
-
+      <div className="section">
         <div className="row">
           <div className="field">
             <label htmlFor="callsign">Callsign</label>
@@ -178,7 +160,7 @@ export default function Builder({ state, onFiled }) {
               id="callsign"
               className="input input--mono"
               maxLength={20}
-              placeholder="e.g. GREY_FOX"
+              placeholder="GREY_FOX"
               value={draft.author}
               onChange={(e) => patch({ author: e.target.value })}
             />
@@ -189,81 +171,85 @@ export default function Builder({ state, onFiled }) {
               id="sname"
               className="input"
               maxLength={30}
-              placeholder="e.g. Cautious Mirror"
+              placeholder="Cautious Mirror"
               value={draft.name}
               onChange={(e) => patch({ name: e.target.value })}
             />
           </div>
         </div>
+      </div>
 
-        <div className="field">
-          <label>First move (round 1)</label>
-          <Seg value={draft.firstMove} onChange={(m) => patch({ firstMove: m })} />
-        </div>
+      <div className="section">
+        <span className="label">Round 1 — open with</span>
+        <Seg value={draft.firstMove} onChange={(m) => patch({ firstMove: m })} />
+      </div>
 
-        <div className="field">
-          <label>Start from a classic</label>
-          <div className="chips">
-            {PRESETS.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                className="chip"
-                title={p.note}
-                onClick={() => loadPreset(p)}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="field">
-          <label>Rule stack</label>
-          {draft.rules.length === 0 && (
-            <p className="notice">No rules — the fallback move is used every round.</p>
-          )}
-          {draft.rules.map((rule, i) => (
-            <RuleRow
-              key={i}
-              rule={rule}
-              index={i}
-              count={draft.rules.length}
-              onChange={(r) => setRule(i, r)}
-              onMove={moveRule}
-              onRemove={removeRule}
-            />
+      <div className="section">
+        <span className="label">Start from a classic</span>
+        <div className="chips">
+          {PRESETS.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              className="chip"
+              title={p.note}
+              onClick={() => loadPreset(p)}
+            >
+              {p.label}
+            </button>
           ))}
-          <button
-            type="button"
-            className="btn btn--sm"
-            onClick={addRule}
-            disabled={draft.rules.length >= MAX_RULES}
-          >
-            + Add rule{draft.rules.length >= MAX_RULES ? ' (max 12)' : ''}
-          </button>
         </div>
+      </div>
 
-        <div className="field">
-          <label>Fallback — if no rule matches</label>
-          <div className="default-line">
-            Otherwise →
-            <Seg value={draft.default} onChange={(m) => patch({ default: m })} />
-          </div>
+      <div className="section">
+        <span className="label">Rules — checked top to bottom</span>
+        {draft.rules.length === 0 && (
+          <p className="hint">No rules yet — the fallback move is used every round.</p>
+        )}
+        {draft.rules.map((rule, i) => (
+          <RuleRow
+            key={i}
+            rule={rule}
+            index={i}
+            count={draft.rules.length}
+            onChange={(r) => setRule(i, r)}
+            onMove={moveRule}
+            onRemove={removeRule}
+          />
+        ))}
+        <button
+          type="button"
+          className="btn btn--sm btn--ghost"
+          onClick={addRule}
+          disabled={draft.rules.length >= MAX_RULES}
+        >
+          + Add rule{draft.rules.length >= MAX_RULES ? ' (max 12)' : ''}
+        </button>
+      </div>
+
+      <div className="section">
+        <span className="label">Otherwise</span>
+        <div className="default-line">
+          Fall back to
+          <Seg value={draft.default} onChange={(m) => patch({ default: m })} />
         </div>
+      </div>
 
-        <div className="btn-row">
-          <button className="btn" onClick={runSimulation} disabled={busy}>
-            {busy ? 'Working…' : 'Run Simulation'}
-          </button>
-          <button className="btn btn--primary" onClick={fileToArena} disabled={busy}>
-            File to the Arena
-          </button>
+      <div className="btn-row">
+        <button className="btn" onClick={runSimulation} disabled={busy}>
+          {busy ? '…' : 'Test'}
+        </button>
+        <button className="btn btn--primary" onClick={fileToArena} disabled={busy}>
+          File to arena
+        </button>
+      </div>
+      {msg && <p className={msg.kind === 'err' ? 'err' : 'ok'}>{msg.text}</p>}
+
+      {result && (
+        <div className="section" style={{ marginTop: 26 }}>
+          <ResultPanel result={result} twist={state.twist} />
         </div>
-        {msg && <p className={msg.kind === 'err' ? 'err' : 'ok'}>{msg.text}</p>}
-      </section>
-
-      {result && <ResultPanel result={result} twist={state.twist} />}
+      )}
     </>
   );
 }

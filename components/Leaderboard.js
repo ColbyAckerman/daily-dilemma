@@ -2,112 +2,92 @@
 
 import { useEffect, useState } from 'react';
 import { describeStrategy } from '@/lib/sentences';
-import LiveDuel from './LiveDuel';
 
-function ProgramRow({ row }) {
+function ExpandRow({ row }) {
   const lines = row.house
     ? [row.blurb || 'House bot — fixed classic strategy.']
     : describeStrategy(row);
   return (
     <tr className="expand">
-      <td colSpan={6}>
+      <td colSpan={4}>
         <pre className="program">{lines.join('\n')}</pre>
       </td>
     </tr>
   );
 }
 
-function LedgerTable({ rows, valueKey, valueLabel, extraKey, extraLabel }) {
+function Rows({ rows, valueKey, extraKey }) {
   const [open, setOpen] = useState(null);
+  if (rows.length === 0) {
+    return (
+      <tbody>
+        <tr>
+          <td colSpan={4} className="notice" style={{ padding: 16 }}>
+            No strategies filed yet — be the first.
+          </td>
+        </tr>
+      </tbody>
+    );
+  }
   return (
-    <div className="ledger-wrap">
-      <table className="ledger">
-        <thead>
-          <tr>
-            <th style={{ width: 34 }}>#</th>
-            <th>Strategy</th>
-            <th></th>
-            <th className="num">{valueLabel}</th>
-            <th className="num">{extraLabel}</th>
-            <th className="num">W–T–L</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const isOpen = open === row.id;
-            return (
-              <FragmentRow
-                key={row.id}
-                row={row}
-                isOpen={isOpen}
-                onToggle={() => setOpen(isOpen ? null : row.id)}
-                valueKey={valueKey}
-                extraKey={extraKey}
-              />
-            );
-          })}
-          {rows.length === 0 && (
-            <tr>
-              <td colSpan={6} className="notice" style={{ padding: 14 }}>
-                No strategies yet — be the first to file one.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+    <tbody>
+      {rows.map((row) => {
+        const isOpen = open === row.id;
+        return (
+          <FragmentRow
+            key={row.id}
+            row={row}
+            isOpen={isOpen}
+            onToggle={() => setOpen(isOpen ? null : row.id)}
+            valueKey={valueKey}
+            extraKey={extraKey}
+          />
+        );
+      })}
+    </tbody>
   );
 }
 
 function FragmentRow({ row, isOpen, onToggle, valueKey, extraKey }) {
   return (
     <>
-      <tr className="is-clickable" onClick={onToggle}>
+      <tr className="click" onClick={onToggle}>
         <td className="rank">{row.rank}</td>
         <td>
           {row.name}
-          {row.author && !row.house ? (
-            <div className="notice" style={{ padding: 0, fontSize: 11 }}>
-              filed by {row.author}
-            </div>
-          ) : null}
+          {!row.house && row.author ? (
+            <span className="tag"> · {row.author}</span>
+          ) : (
+            <span className="tag"> · bot</span>
+          )}
         </td>
-        <td>
-          <span className="tag">{row.house ? 'House Bot' : 'Filed'}</span>
-        </td>
-        <td className="num">{fmt(row[valueKey])}</td>
-        <td className="num">{row[extraKey]}</td>
         <td className="num">
-          {row.wins != null ? `${row.wins}–${row.ties}–${row.losses}` : '—'}
+          {typeof row[valueKey] === 'number' ? row[valueKey].toFixed(3) : '—'}
         </td>
+        <td className="num">{row[extraKey]}</td>
       </tr>
-      {isOpen && <ProgramRow row={row} />}
+      {isOpen && <ExpandRow row={row} />}
     </>
   );
-}
-
-function fmt(v) {
-  return typeof v === 'number' ? v.toFixed(3) : v;
 }
 
 export default function Leaderboard({ state, onRefresh }) {
   const [tab, setTab] = useState('today');
   const [allTime, setAllTime] = useState(null);
-  const [loadingAT, setLoadingAT] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (tab !== 'alltime' || allTime || loadingAT) return;
-    setLoadingAT(true);
+    if (tab !== 'alltime' || allTime || loading) return;
+    setLoading(true);
     fetch('/api/leaderboard/alltime', { cache: 'no-store' })
       .then((r) => r.json())
-      .then((d) => setAllTime(d))
+      .then(setAllTime)
       .catch(() => setAllTime({ rows: [], error: true }))
-      .finally(() => setLoadingAT(false));
-  }, [tab, allTime, loadingAT]);
+      .finally(() => setLoading(false));
+  }, [tab, allTime, loading]);
 
   return (
-    <section className="panel">
-      <h2 className="panel__title">Leaderboard</h2>
+    <div>
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === 'today'} onClick={() => setTab('today')}>
           Today
@@ -119,58 +99,63 @@ export default function Leaderboard({ state, onRefresh }) {
         >
           All-Time
         </button>
-        <button role="tab" aria-selected={tab === 'live'} onClick={() => setTab('live')}>
-          Live Duel
-        </button>
       </div>
 
       {tab === 'today' && (
         <>
-          <p className="panel__hint">
-            {state.strategies.length} filed{' '}
-            {state.strategies.length === 1 ? 'strategy' : 'strategies'} + 10 house
-            bots · {state.twist.rounds} rounds · {state.twist.noiseLabel}. Click a
-            row to read its rules.
+          <p className="hint">
+            {state.strategies.length} filed + 10 bots · {state.twist.rounds} rounds ·{' '}
+            {state.twist.noiseLabel}. Tap a row for its rules.
           </p>
-          <LedgerTable
-            rows={state.standings}
-            valueKey="avg"
-            valueLabel="Avg / rd"
-            extraKey="opponents"
-            extraLabel="Opp."
-          />
-          <div className="btn-row">
-            <button className="btn btn--sm" onClick={onRefresh}>
+          <table className="list">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Strategy</th>
+                <th className="num">Avg</th>
+                <th className="num">Opp</th>
+              </tr>
+            </thead>
+            <Rows rows={state.standings} valueKey="avg" extraKey="opponents" />
+          </table>
+          <p className="center" style={{ marginTop: 12 }}>
+            <button className="btn btn--sm btn--ghost" onClick={onRefresh}>
               Refresh
             </button>
-          </div>
+          </p>
         </>
       )}
 
       {tab === 'alltime' && (
         <>
-          <p className="panel__hint">
-            {loadingAT
+          <p className="hint">
+            {loading
               ? 'Replaying the last 30 days…'
               : allTime
               ? `Averaged across ${allTime.days} day${allTime.days === 1 ? '' : 's'}${
                   allTime.cached ? ' · cached' : ''
-                }.`
+                }. Tap a row for its rules.`
               : ''}
           </p>
           {allTime && (
-            <LedgerTable
-              rows={(allTime.rows || []).map((r) => ({ ...r, wins: null }))}
-              valueKey="avgAllTime"
-              valueLabel="Avg / rd"
-              extraKey="daysPlayed"
-              extraLabel="Days"
-            />
+            <table className="list">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Strategy</th>
+                  <th className="num">Avg</th>
+                  <th className="num">Days</th>
+                </tr>
+              </thead>
+              <Rows
+                rows={allTime.rows || []}
+                valueKey="avgAllTime"
+                extraKey="daysPlayed"
+              />
+            </table>
           )}
         </>
       )}
-
-      {tab === 'live' && <LiveDuel />}
-    </section>
+    </div>
   );
 }
