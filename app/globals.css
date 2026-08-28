@@ -315,7 +315,7 @@ select.input {
   font-size: 12px;
   font-weight: 500;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 .chip:hover {
   border-color: var(--ink);
@@ -422,7 +422,7 @@ select.input {
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
-  border-radius: 3px;
+  border-radius: 6px;
 }
 .pill--C {
   background: var(--cooperate);
