@@ -23,7 +23,7 @@ const num = {
   className: 'input input--num',
 };
 
-export default function RuleRow({ rule, index, count, onChange, onMove, onRemove }) {
+export default function RuleRow({ rule, index, count, badge, onChange, onMove, onRemove }) {
   const p = rule.params || {};
   const setType = (type) => onChange({ ...rule, type, params: defaultParams(type) });
   const setParam = (patch) => onChange({ ...rule, params: { ...p, ...patch } });
@@ -32,7 +32,10 @@ export default function RuleRow({ rule, index, count, onChange, onMove, onRemove
   return (
     <div className="rule">
       <div className="rule__head">
-        <span className="rule__idx">rule {index + 1} of {count}</span>
+        <span className="rule__idx">
+          rule {index + 1} of {count}
+          {badge ? <span className="rule__badge">{prettyPreset(badge)}</span> : null}
+        </span>
         <span style={{ display: 'flex', gap: 6 }}>
           <button
             type="button"
@@ -186,6 +189,21 @@ export default function RuleRow({ rule, index, count, onChange, onMove, onRemove
     </div>
   );
 }
+
+function prettyPreset(key) {
+  return PRESET_NAMES[key] || key;
+}
+
+const PRESET_NAMES = {
+  'tit-for-tat': 'Tit for Tat',
+  'grim-trigger': 'Grim Trigger',
+  'always-cooperate': 'Always Cooperate',
+  'always-defect': 'Always Defect',
+  'tit-for-two-tats': 'Tit for Two Tats',
+  'suspicious-tit-for-tat': 'Suspicious TfT',
+  'generous-tit-for-tat': 'Generous TfT',
+  joss: 'Joss',
+};
 
 function normalizeForSentence(rule) {
   const p = { ...(rule.params || {}) };

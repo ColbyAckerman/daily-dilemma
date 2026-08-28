@@ -321,6 +321,29 @@ select.input {
   border-color: var(--ink);
   color: var(--ink);
 }
+.chip--on,
+.chip--on:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.linkbtn {
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 2px 4px;
+}
+.linkbtn:hover {
+  color: var(--ink);
+}
 
 /* ---- rule stack ------------------------------------------ */
 .rule {
@@ -340,6 +363,20 @@ select.input {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rule__badge {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--ink-soft);
+  border-radius: 4px;
+  padding: 2px 6px;
 }
 .rule__sentence {
   font-size: 0.9rem;

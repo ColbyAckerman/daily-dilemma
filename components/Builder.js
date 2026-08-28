@@ -15,9 +15,14 @@ const BLANK = {
   author: '',
   name: '',
   firstMove: 'C',
-  rules: [{ type: 'opp_last', params: { move: 'D' }, action: 'D' }],
+  rules: [],
   default: 'C',
 };
+
+// Identity of a rule for de-duping stacked presets (ignores the _preset tag).
+function sig(r) {
+  return r.type + '|' + r.action + '|' + JSON.stringify(r.params || {});
+}
 
 export default function Builder({ state, onFiled }) {
   const [draft, setDraft] = useState(BLANK);
@@ -47,6 +52,13 @@ export default function Builder({ state, onFiled }) {
       if (draft.author) localStorage.setItem(CALLSIGN_KEY, draft.author);
     } catch (e) {}
   }, [draft]);
+
+  // Which presets are currently stacked — derived from rule tags so it stays
+  // in sync even after the user edits or deletes individual rows.
+  const appliedPresets = useMemo(
+    () => new Set(draft.rules.map((r) => r._preset).filter(Boolean)),
+    [draft.rules]
+  );
 
   function patch(p) {
     setDraft((d) => ({ ...d, ...p }));
@@ -83,20 +95,38 @@ export default function Builder({ state, onFiled }) {
           }
     );
   }
-  function loadPreset(preset) {
-    setDraft((d) => ({
-      ...d,
-      firstMove: preset.def.firstMove,
-      default: preset.def.default,
-      rules: preset.def.rules.map((r) => ({
-        type: r.type,
-        params: { ...r.params },
-        action: r.action,
-      })),
-      name: d.name || preset.label,
-    }));
+  function clearRules() {
+    setDraft((d) => ({ ...d, rules: [] }));
+    setResult(null);
+  }
+
+  function togglePreset(preset) {
     setResult(null);
     setMsg(null);
+    setDraft((d) => {
+      const isOn = d.rules.some((r) => r._preset === preset.key);
+      if (isOn) {
+        return { ...d, rules: d.rules.filter((r) => r._preset !== preset.key) };
+      }
+      const seen = new Set(d.rules.map(sig));
+      const room = MAX_RULES - d.rules.length;
+      const tagged = preset.def.rules
+        .filter((r) => !seen.has(sig(r))) // skip rules already in the stack
+        .slice(0, Math.max(0, room))
+        .map((r) => ({
+          type: r.type,
+          params: { ...r.params },
+          action: r.action,
+          _preset: preset.key,
+        }));
+      const firstStack = d.rules.every((r) => !r._preset);
+      return {
+        ...d,
+        rules: [...d.rules, ...tagged],
+        firstMove: firstStack ? preset.def.firstMove : d.firstMove,
+        default: firstStack ? preset.def.default : d.default,
+      };
+    });
   }
 
   const cleaned = useMemo(() => validateStrategyInput(draft).value, [draft]);
@@ -185,26 +215,51 @@ export default function Builder({ state, onFiled }) {
       </div>
 
       <div className="section">
-        <span className="label">Start from a classic</span>
+        <span className="label">Stack the classics</span>
+        <p className="hint">
+          Click to add a classic’s rules to your stack. Click again to remove.
+          Combine as many as you like.
+        </p>
         <div className="chips">
-          {PRESETS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              className="chip"
-              title={p.note}
-              onClick={() => loadPreset(p)}
-            >
-              {p.label}
-            </button>
-          ))}
+          {PRESETS.map((p) => {
+            const on = appliedPresets.has(p.key);
+            return (
+              <button
+                key={p.key}
+                type="button"
+                className={on ? 'chip chip--on' : 'chip'}
+                aria-pressed={on}
+                title={p.note}
+                onClick={() => togglePreset(p)}
+              >
+                {on ? '✓ ' : ''}
+                {p.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <div className="section">
-        <span className="label">Rules — checked top to bottom</span>
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}
+        >
+          <span className="label">Rules — checked top to bottom</span>
+          {draft.rules.length > 0 && (
+            <button
+              type="button"
+              className="linkbtn"
+              onClick={clearRules}
+            >
+              Clear
+            </button>
+          )}
+        </div>
         {draft.rules.length === 0 && (
-          <p className="hint">No rules yet — the fallback move is used every round.</p>
+          <p className="hint">
+            No rules yet — stack a classic above, add your own, or just rely on
+            the fallback.
+          </p>
         )}
         {draft.rules.map((rule, i) => (
           <RuleRow
@@ -212,6 +267,7 @@ export default function Builder({ state, onFiled }) {
             rule={rule}
             index={i}
             count={draft.rules.length}
+            badge={rule._preset}
             onChange={(r) => setRule(i, r)}
             onMove={moveRule}
             onRemove={removeRule}
