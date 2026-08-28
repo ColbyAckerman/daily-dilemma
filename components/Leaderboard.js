@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { describeStrategy } from '@/lib/sentences';
 
 function ExpandRow({ row }) {
@@ -16,7 +16,7 @@ function ExpandRow({ row }) {
   );
 }
 
-function Rows({ rows, valueKey, extraKey }) {
+function Rows({ rows, valueKey, extraKey, isMine }) {
   const [open, setOpen] = useState(null);
   if (rows.length === 0) {
     return (
@@ -37,6 +37,7 @@ function Rows({ rows, valueKey, extraKey }) {
           <FragmentRow
             key={row.id}
             row={row}
+            mine={isMine(row)}
             isOpen={isOpen}
             onToggle={() => setOpen(isOpen ? null : row.id)}
             valueKey={valueKey}
@@ -48,14 +49,16 @@ function Rows({ rows, valueKey, extraKey }) {
   );
 }
 
-function FragmentRow({ row, isOpen, onToggle, valueKey, extraKey }) {
+function FragmentRow({ row, mine, isOpen, onToggle, valueKey, extraKey }) {
   return (
     <>
-      <tr className="click" onClick={onToggle}>
+      <tr className={mine ? 'click is-mine' : 'click'} onClick={onToggle}>
         <td className="rank">{row.rank}</td>
         <td>
           {row.name}
-          {!row.house && row.author ? (
+          {mine ? (
+            <span className="tag tag--you"> · you</span>
+          ) : !row.house && row.author ? (
             <span className="tag"> · {row.author}</span>
           ) : (
             <span className="tag"> · bot</span>
@@ -71,10 +74,21 @@ function FragmentRow({ row, isOpen, onToggle, valueKey, extraKey }) {
   );
 }
 
-export default function Leaderboard({ state, onRefresh }) {
+export default function Leaderboard({ state, mine = [], onRefresh }) {
   const [tab, setTab] = useState('today');
   const [allTime, setAllTime] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const mineKeys = useMemo(
+    () =>
+      new Set(
+        mine.map((m) => `${(m.author || '').toLowerCase()}|${(m.name || '').toLowerCase()}`)
+      ),
+    [mine]
+  );
+  const isMine = (row) =>
+    !row.house &&
+    mineKeys.has(`${(row.author || '').toLowerCase()}|${(row.name || '').toLowerCase()}`);
 
   useEffect(() => {
     if (tab !== 'alltime' || allTime || loading) return;
@@ -85,6 +99,9 @@ export default function Leaderboard({ state, onRefresh }) {
       .catch(() => setAllTime({ rows: [], error: true }))
       .finally(() => setLoading(false));
   }, [tab, allTime, loading]);
+
+  const mineNote =
+    mine.length > 0 ? ' Your strategies are highlighted.' : '';
 
   return (
     <div>
@@ -104,8 +121,8 @@ export default function Leaderboard({ state, onRefresh }) {
       {tab === 'today' && (
         <>
           <p className="hint">
-            {state.strategies.length} filed + 10 bots · {state.twist.rounds} rounds ·{' '}
-            {state.twist.noiseLabel}. Tap a row for its rules.
+            {state.strategies.length} filed + 10 bots · ≈{state.twist.expectedRounds}{' '}
+            rounds · {state.twist.noiseLabel}. Tap a row for its rules.{mineNote}
           </p>
           <table className="list">
             <thead>
@@ -116,7 +133,12 @@ export default function Leaderboard({ state, onRefresh }) {
                 <th className="num">Opp</th>
               </tr>
             </thead>
-            <Rows rows={state.standings} valueKey="avg" extraKey="opponents" />
+            <Rows
+              rows={state.standings}
+              valueKey="avg"
+              extraKey="opponents"
+              isMine={isMine}
+            />
           </table>
           <p className="center" style={{ marginTop: 12 }}>
             <button className="btn btn--sm btn--ghost" onClick={onRefresh}>
@@ -134,7 +156,7 @@ export default function Leaderboard({ state, onRefresh }) {
               : allTime
               ? `Averaged across ${allTime.days} day${allTime.days === 1 ? '' : 's'}${
                   allTime.cached ? ' · cached' : ''
-                }. Tap a row for its rules.`
+                }. Tap a row for its rules.${mineNote}`
               : ''}
           </p>
           {allTime && (
@@ -151,6 +173,7 @@ export default function Leaderboard({ state, onRefresh }) {
                 rows={allTime.rows || []}
                 valueKey="avgAllTime"
                 extraKey="daysPlayed"
+                isMine={isMine}
               />
             </table>
           )}

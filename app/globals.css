@@ -113,6 +113,20 @@ button {
   text-align: center;
   white-space: nowrap;
   flex: 1;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 0;
+  border-radius: 4px;
+}
+.topbar__title:hover {
+  color: var(--cooperate);
+}
+.topbar__title:focus-visible {
+  outline: 2px solid var(--cooperate);
+  outline-offset: 2px;
 }
 @media (min-width: 480px) {
   .topbar__title {
@@ -164,17 +178,26 @@ button {
 }
 
 .conditions {
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 2px 10px;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.04em;
   color: var(--ink-soft);
-  margin-bottom: 26px;
-  text-wrap: balance;
+  margin: 0 0 26px;
 }
-.conditions b {
-  color: var(--ink);
-  font-weight: 600;
+.conditions > span {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+.conditions > span:not(:last-child)::after {
+  content: "·";
+  margin-left: 10px;
+  color: var(--line);
 }
 
 /* ---- wider on tablet / desktop --------------------------------------- */
@@ -291,6 +314,9 @@ select.input {
 .row > * {
   flex: 1;
   min-width: 150px;
+}
+.row .field {
+  margin-bottom: 0;
 }
 
 /* ---- tile toggle (Cooperate / Defect) --------------------------- */
@@ -588,6 +614,16 @@ select.input {
 .list tr.is-draft td {
   background: var(--cooperate-soft);
 }
+.list tr.is-mine td {
+  background: var(--cooperate-soft);
+}
+.list tr.is-mine td:first-child {
+  box-shadow: inset 3px 0 0 var(--cooperate);
+}
+.list tr.is-mine.click:hover td {
+  background: var(--cooperate-soft);
+  filter: brightness(0.97);
+}
 .list .expand td {
   background: var(--surface-2);
 }
@@ -605,6 +641,10 @@ select.input {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-soft);
+}
+.tag--you {
+  color: var(--cooperate);
+  font-weight: 700;
 }
 
 /* ---- tabs ----------------------------------------- */

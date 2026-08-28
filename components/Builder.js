@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Seg from './Seg';
 import RuleRow, { defaultParams } from './RuleRow';
 import ResultPanel from './ResultPanel';
@@ -29,7 +29,10 @@ export default function Builder({ state, onFiled }) {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
-  const loaded = useRef(false);
+  // `hydrated` must be state (not a ref) so the persist effect below doesn't
+  // fire — and clobber the restored draft with BLANK — on the same commit
+  // the restore runs in.
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -42,16 +45,16 @@ export default function Builder({ state, onFiled }) {
         setDraft((d) => ({ ...d, author: callsign }));
       }
     } catch (e) {}
-    loaded.current = true;
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!loaded.current) return;
+    if (!hydrated) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       if (draft.author) localStorage.setItem(CALLSIGN_KEY, draft.author);
     } catch (e) {}
-  }, [draft]);
+  }, [draft, hydrated]);
 
   // Which presets are currently stacked — derived from rule tags so it stays
   // in sync even after the user edits or deletes individual rows.
@@ -172,7 +175,11 @@ export default function Builder({ state, onFiled }) {
             ? 'Updated. Your strategy plays from today onward.'
             : 'Filed. It now plays every rival, every day.',
         });
-        onFiled(data.state || null);
+        onFiled(data.state || null, {
+          id: data.id,
+          name: check.value.name,
+          author: check.value.author,
+        });
       }
     } catch (e) {
       setMsg({ kind: 'err', text: 'Network error while filing.' });

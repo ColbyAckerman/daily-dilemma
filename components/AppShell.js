@@ -7,10 +7,14 @@ import LiveDuel from './LiveDuel';
 import HelpContent from './HelpContent';
 import Modal from './Modal';
 
+const MINE_KEY = 'dd-mine';
+
 export default function AppShell({ initialState }) {
   const [state, setState] = useState(initialState);
   const [modal, setModal] = useState(null); // 'help' | 'board' | 'duel' | null
   const [theme, setTheme] = useState(null);
+  const [mine, setMine] = useState([]); // [{ id, name, author }]
+  const [nonce, setNonce] = useState(0); // bump to hard-reset the builder
 
   useEffect(() => {
     let t = null;
@@ -21,6 +25,10 @@ export default function AppShell({ initialState }) {
       t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     setTheme(t);
+    try {
+      const saved = JSON.parse(localStorage.getItem(MINE_KEY) || '[]');
+      if (Array.isArray(saved)) setMine(saved);
+    } catch (e) {}
   }, []);
 
   const refresh = useCallback(async () => {
@@ -30,13 +38,21 @@ export default function AppShell({ initialState }) {
     } catch (e) {}
   }, []);
 
-  const onFiled = useCallback(
-    (newState) => {
-      if (newState) setState(newState);
-      else refresh();
-    },
-    [refresh]
-  );
+  const onFiled = useCallback((newState, filed) => {
+    if (newState) setState(newState);
+    else refresh();
+    if (filed && filed.name) {
+      setMine((prev) => {
+        const key = (a) => `${(a.author || '').toLowerCase()}|${a.name.toLowerCase()}`;
+        if (prev.some((m) => key(m) === key(filed))) return prev;
+        const next = [...prev, { id: filed.id, name: filed.name, author: filed.author }];
+        try {
+          localStorage.setItem(MINE_KEY, JSON.stringify(next));
+        } catch (e) {}
+        return next;
+      });
+    }
+  }, [refresh]);
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -45,6 +61,19 @@ export default function AppShell({ initialState }) {
     try {
       localStorage.setItem('dd-theme', next);
     } catch (e) {}
+  }
+
+  function startOver() {
+    // Wipe everything device-local EXCEPT the callsign and theme.
+    try {
+      localStorage.removeItem('dd-draft');
+      localStorage.removeItem('dd-clientId');
+      localStorage.removeItem(MINE_KEY);
+    } catch (e) {}
+    setMine([]);
+    setModal(null);
+    setNonce((n) => n + 1);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
   }
 
   const { twist, issueNumber } = state;
@@ -61,14 +90,22 @@ export default function AppShell({ initialState }) {
             ?
           </button>
         </div>
-        <h1 className="topbar__title">Daily Dilemma</h1>
+
+        <button
+          className="topbar__title"
+          onClick={startOver}
+          title="Start over — clears your strategy (keeps your callsign)"
+        >
+          Daily Dilemma
+        </button>
+
         <div className="iconrow">
           <button
             className="iconbtn"
             aria-label="Leaderboard"
             onClick={() => setModal('board')}
           >
-            ▤
+            <BoardIcon />
           </button>
           <button
             className="iconbtn"
@@ -83,18 +120,20 @@ export default function AppShell({ initialState }) {
 
       <main className="wrap">
         <p className="conditions">
-          No. {String(issueNumber).padStart(3, '0')} &nbsp;·&nbsp;{' '}
-          <b>{twist.rounds}</b> rounds &nbsp;·&nbsp; <b>{twist.noiseLabel}</b>{' '}
-          ({twist.noisePct}% noise)
+          <span>No. {String(issueNumber).padStart(3, '0')}</span>
+          <span>≈{twist.expectedRounds} rounds · random end</span>
+          <span>
+            {twist.noiseLabel} · {twist.noisePct}% noise
+          </span>
         </p>
 
         <div className="col-main">
-          <Builder state={state} onFiled={onFiled} />
+          <Builder key={nonce} state={state} mine={mine} onFiled={onFiled} />
         </div>
 
         <aside className="rail">
           <span className="label">Leaderboard</span>
-          <Leaderboard state={state} onRefresh={refresh} />
+          <Leaderboard key={nonce} state={state} mine={mine} onRefresh={refresh} />
         </aside>
 
         <div className="footer-links">
@@ -113,7 +152,7 @@ export default function AppShell({ initialState }) {
       )}
       {modal === 'board' && (
         <Modal title="Leaderboard" onClose={() => setModal(null)}>
-          <Leaderboard state={state} onRefresh={refresh} />
+          <Leaderboard state={state} mine={mine} onRefresh={refresh} />
         </Modal>
       )}
       {modal === 'duel' && (
@@ -122,5 +161,15 @@ export default function AppShell({ initialState }) {
         </Modal>
       )}
     </>
+  );
+}
+
+function BoardIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+      <rect x="1.5" y="9" width="3.4" height="6.5" rx="1" fill="currentColor" />
+      <rect x="6.8" y="5" width="3.4" height="10.5" rx="1" fill="currentColor" />
+      <rect x="12.1" y="1.5" width="3.4" height="14" rx="1" fill="currentColor" />
+    </svg>
   );
 }

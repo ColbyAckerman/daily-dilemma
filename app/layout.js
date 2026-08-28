@@ -31,7 +31,11 @@ const themeScript = `(function(){try{var t=localStorage.getItem('dd-theme');if(t
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${plexSans.variable} ${plexMono.variable}`}>
+    <html
+      lang="en"
+      className={`${plexSans.variable} ${plexMono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

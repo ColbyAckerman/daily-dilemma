@@ -58,11 +58,16 @@ integrations inject:
 - **Engine** (`lib/engine.js`) — pure, dependency-free, fully deterministic from
   a seed. No `Math.random()` / `Date.now()` in any scoring path, so every server
   request and every viewer computes identical standings for a given day.
-- **Daily twist** — round count `[120…200]` and noise `[0/4/8/12%]` are derived
-  from `hashStr('twist:' + YYYY-MM-DD)` where the date is computed **server-side
-  in UTC**.
+- **Daily twist** — the day's *expected* match length `[160…240]` (averaging
+  200) and noise `[0/4/8/12%]` are derived from `hashStr('twist:' + YYYY-MM-DD)`
+  where the date is computed **server-side in UTC**.
+- **Random match length** — each pairing continues after every round with a
+  fixed probability `w = 1 − 1/(expected − floor)` (Axelrod-style probabilistic
+  termination), so no strategy knows when a match ends. The length is drawn from
+  its own per-pair seed, floored at 20 and capped at 3× expected.
 - **Round-robin** — 10 house bots + every strategy with `createdAt <= today`
-  play every unique pair once; score is `totalPoints / (rounds × opponents)`.
+  play every unique pair once; score is `totalPoints / totalRoundsPlayed` (the
+  average points earned per round across the whole field).
 - **All-time** — the last 30 days are replayed with the roster as it existed on
   each day; each strategy's daily averages are meaned. Result is cached in Redis
   for 15 minutes (`cache:alltime:<date>`).

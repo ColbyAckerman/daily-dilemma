@@ -35,7 +35,7 @@ export default function ResultPanel({ result, twist }) {
         <div style={{ marginTop: 16 }}>
           <span className="label">
             vs #{transcript.oppRank} {transcript.oppName} · {transcript.myScore}–
-            {transcript.oppScore}
+            {transcript.oppScore} · {transcript.roundsCount} rounds
           </span>
           <div className="transcript">
             {transcript.rounds.map((r, i) => (
