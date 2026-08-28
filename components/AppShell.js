@@ -88,7 +88,14 @@ export default function AppShell({ initialState }) {
           ({twist.noisePct}% noise)
         </p>
 
-        <Builder state={state} onFiled={onFiled} />
+        <div className="col-main">
+          <Builder state={state} onFiled={onFiled} />
+        </div>
+
+        <aside className="rail">
+          <span className="label">Leaderboard</span>
+          <Leaderboard state={state} onRefresh={refresh} />
+        </aside>
 
         <div className="footer-links">
           <button onClick={() => setModal('board')}>Leaderboard</button>
