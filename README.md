@@ -74,12 +74,23 @@ integrations inject:
 - **Pool cap** — when the pool exceeds 300 filed strategies the oldest is
   dropped on the next write.
 
+## Identity
+
+No accounts. Each device generates a persistent `dd-uid` in `localStorage`.
+A **callsign** is one uppercase word (`[A-Z_]+`, no digits/periods/spaces) and
+is claimed by the first `uid` that files under it — stored in the Redis hash
+`callsigns` (`CALLSIGN -> uid`). Other devices filing under a claimed callsign
+get `409 callsign_taken`. The "start over" reset keeps `dd-uid`, `dd-callsign`
+and the theme; it only clears the working draft and the local "my strategies"
+highlight list.
+
 ## API
 
 | Route | Purpose |
 | --- | --- |
 | `GET /api/state` | today's twist + full standings + filed strategies |
-| `POST /api/strategies` | validate + upsert a strategy, return fresh standings |
+| `GET /api/callsign?name=&uid=` | normalize + availability check for a callsign |
+| `POST /api/strategies` | validate, claim callsign, upsert; returns fresh standings |
 | `GET /api/leaderboard/alltime` | cached (or freshly computed) all-time board |
 | `POST /api/live/queue` · `DELETE /api/live/queue` | join / leave the duel queue |
 | `POST /api/live/bot-match` | start a solo match vs a bot |

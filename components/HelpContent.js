@@ -54,7 +54,9 @@ export default function HelpContent() {
         an experimental poll-based 1v1 — if nobody joins in ~15s you play a bot.
       </p>
       <p style={{ marginBottom: 0 }}>
-        No accounts. Pick a callsign; everything is public.
+        No accounts. Your <strong>callsign</strong> is one uppercase word
+        (letters and underscores) and is claimed by the first device that files
+        under it — nobody else can use it. Everything is public.
       </p>
     </div>
   );

@@ -1,12 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Seg from './Seg';
 import RuleRow, { defaultParams } from './RuleRow';
 import ResultPanel from './ResultPanel';
 import { PRESETS } from '@/lib/presets';
-import { validateStrategyInput, MAX_RULES } from '@/lib/validate';
+import {
+  validateStrategyInput,
+  MAX_RULES,
+  normalizeCallsign,
+  formatCallsignLive,
+  callsignError,
+} from '@/lib/validate';
 import { simulateDraft } from '@/lib/engine';
+import { getUid } from '@/lib/uid';
 
 const DRAFT_KEY = 'dd-draft';
 const CALLSIGN_KEY = 'dd-callsign';
@@ -62,6 +69,36 @@ export default function Builder({ state, onFiled }) {
     () => new Set(draft.rules.map((r) => r._preset).filter(Boolean)),
     [draft.rules]
   );
+
+  // ---- callsign: normalize + live uniqueness check ---------------------
+  const callsign = useMemo(() => normalizeCallsign(draft.author), [draft.author]);
+  const callsignFormatErr = callsignError(callsign);
+  const [callsignStatus, setCallsignStatus] = useState(null); // {available, ownedByYou} | null
+  const checkSeq = useRef(0);
+
+  useEffect(() => {
+    setCallsignStatus(null);
+    if (callsignFormatErr) return;
+    const seq = ++checkSeq.current;
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(
+          `/api/callsign?name=${encodeURIComponent(callsign)}&uid=${encodeURIComponent(getUid())}`,
+          { cache: 'no-store' }
+        );
+        const data = await r.json();
+        if (seq === checkSeq.current) {
+          setCallsignStatus(
+            data.valid ? { available: data.available, ownedByYou: data.ownedByYou } : null
+          );
+        }
+      } catch (e) {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [callsign, callsignFormatErr]);
+
+  const callsignTaken =
+    callsignStatus && !callsignStatus.available && !callsignStatus.ownedByYou;
 
   function patch(p) {
     setDraft((d) => ({ ...d, ...p }));
@@ -154,16 +191,23 @@ export default function Builder({ state, onFiled }) {
       setMsg({ kind: 'err', text: check.errors.join(' ') });
       return;
     }
+    if (callsignTaken) {
+      setMsg({ kind: 'err', text: `Callsign ${callsign} is already claimed.` });
+      return;
+    }
     setBusy(true);
     setMsg(null);
     try {
       const r = await fetch('/api/strategies', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(check.value),
+        body: JSON.stringify({ ...check.value, uid: getUid() }),
       });
       const data = await r.json();
       if (!r.ok) {
+        if (data.error === 'callsign_taken') {
+          setCallsignStatus({ available: false, ownedByYou: false });
+        }
         setMsg({
           kind: 'err',
           text: (data.errors && data.errors.join(' ')) || data.error || 'Filing failed.',
@@ -175,6 +219,8 @@ export default function Builder({ state, onFiled }) {
             ? 'Updated. Your strategy plays from today onward.'
             : 'Filed. It now plays every rival, every day.',
         });
+        // We just claimed it — reflect that without waiting for a re-check.
+        setCallsignStatus({ available: true, ownedByYou: true });
         onFiled(data.state || null, {
           id: data.id,
           name: check.value.name,
@@ -197,9 +243,17 @@ export default function Builder({ state, onFiled }) {
               id="callsign"
               className="input input--mono"
               maxLength={20}
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder="GREY_FOX"
               value={draft.author}
-              onChange={(e) => patch({ author: e.target.value })}
+              onChange={(e) => patch({ author: formatCallsignLive(e.target.value) })}
+            />
+            <CallsignStatus
+              callsign={callsign}
+              formatErr={callsignFormatErr}
+              status={callsignStatus}
             />
           </div>
           <div className="field">
@@ -302,7 +356,11 @@ export default function Builder({ state, onFiled }) {
         <button className="btn" onClick={runSimulation} disabled={busy}>
           {busy ? '…' : 'Test'}
         </button>
-        <button className="btn btn--primary" onClick={fileToArena} disabled={busy}>
+        <button
+          className="btn btn--primary"
+          onClick={fileToArena}
+          disabled={busy || !!callsignFormatErr || callsignTaken}
+        >
           File to arena
         </button>
       </div>
@@ -315,4 +373,23 @@ export default function Builder({ state, onFiled }) {
       )}
     </>
   );
+}
+
+function CallsignStatus({ callsign, formatErr, status }) {
+  if (!callsign) {
+    return <p className="fieldnote">Uppercase, one word, letters + underscores.</p>;
+  }
+  if (formatErr) {
+    return <p className="fieldnote fieldnote--err">{formatErr}</p>;
+  }
+  if (!status) {
+    return <p className="fieldnote">Checking “{callsign}”…</p>;
+  }
+  if (status.ownedByYou) {
+    return <p className="fieldnote fieldnote--ok">“{callsign}” — that’s you.</p>;
+  }
+  if (status.available) {
+    return <p className="fieldnote fieldnote--ok">“{callsign}” is available.</p>;
+  }
+  return <p className="fieldnote fieldnote--err">“{callsign}” is taken.</p>;
 }

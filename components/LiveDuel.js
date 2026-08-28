@@ -1,26 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { getUid } from '@/lib/uid';
 
-function getClientId() {
-  try {
-    let id = localStorage.getItem('dd-clientId');
-    if (!id) {
-      id =
-        (crypto.randomUUID && crypto.randomUUID()) ||
-        's' + Math.random().toString(36).slice(2);
-      localStorage.setItem('dd-clientId', id);
-    }
-    return id;
-  } catch (e) {
-    return 's' + Math.random().toString(36).slice(2);
-  }
-}
 function getName() {
   try {
-    return localStorage.getItem('dd-callsign') || 'Anon';
+    return localStorage.getItem('dd-callsign') || 'ANON';
   } catch (e) {
-    return 'Anon';
+    return 'ANON';
   }
 }
 
@@ -40,7 +27,7 @@ export default function LiveDuel() {
   const cid = useRef(null);
 
   useEffect(() => {
-    cid.current = getClientId();
+    cid.current = getUid();
     return () => clearAll();
   }, []);
 

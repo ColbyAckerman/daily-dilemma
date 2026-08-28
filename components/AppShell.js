@@ -64,10 +64,10 @@ export default function AppShell({ initialState }) {
   }
 
   function startOver() {
-    // Wipe everything device-local EXCEPT the callsign and theme.
+    // Wipe the current attempt. Keep who you are: callsign, device id (dd-uid,
+    // which backs callsign ownership + live duel), and theme.
     try {
       localStorage.removeItem('dd-draft');
-      localStorage.removeItem('dd-clientId');
       localStorage.removeItem(MINE_KEY);
     } catch (e) {}
     setMine([]);
@@ -94,7 +94,7 @@ export default function AppShell({ initialState }) {
         <button
           className="topbar__title"
           onClick={startOver}
-          title="Start over — clears your strategy (keeps your callsign)"
+          title="Start over — clears your draft (keeps your callsign)"
         >
           Daily Dilemma
         </button>
