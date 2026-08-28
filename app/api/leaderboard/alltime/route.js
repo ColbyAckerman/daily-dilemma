@@ -12,7 +12,13 @@ export async function GET() {
 
     const strategies = await getAllStrategies();
     const result = computeAllTime(strategies, dateStr, LAUNCH_DATE);
-    const payload = { dateStr, days: result.days, rows: result.rows };
+    const payload = {
+      dateStr,
+      days: result.days,
+      rows: result.rows,
+      series: result.series,
+      window: result.window,
+    };
     await setAllTimeCache(dateStr, payload);
     return Response.json({ ...payload, cached: false });
   } catch (err) {

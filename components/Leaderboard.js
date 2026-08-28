@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { describeStrategy } from '@/lib/sentences';
+import TrendChart from './TrendChart';
+
+const keyOf = (a, n) => `${(a || '').toLowerCase()}|${(n || '').toLowerCase()}`;
 
 function ExpandRow({ row }) {
   const lines = row.house
@@ -16,7 +19,7 @@ function ExpandRow({ row }) {
   );
 }
 
-function Rows({ rows, valueKey, extraKey, isMine }) {
+function Rows({ rows, valueKey, extraKey, isMine, focusKey }) {
   const [open, setOpen] = useState(null);
   if (rows.length === 0) {
     return (
@@ -38,6 +41,7 @@ function Rows({ rows, valueKey, extraKey, isMine }) {
             key={row.id}
             row={row}
             mine={isMine(row)}
+            focused={!!focusKey && keyOf(row.author, row.name) === focusKey}
             isOpen={isOpen}
             onToggle={() => setOpen(isOpen ? null : row.id)}
             valueKey={valueKey}
@@ -49,10 +53,24 @@ function Rows({ rows, valueKey, extraKey, isMine }) {
   );
 }
 
-function FragmentRow({ row, mine, isOpen, onToggle, valueKey, extraKey }) {
+function FragmentRow({ row, mine, focused, isOpen, onToggle, valueKey, extraKey }) {
+  const ref = useRef(null);
+  const [pulse, setPulse] = useState(false);
+  useEffect(() => {
+    if (!focused || !ref.current) return;
+    ref.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setPulse(true);
+    const t = setTimeout(() => setPulse(false), 1600);
+    return () => clearTimeout(t);
+  }, [focused]);
+
+  const cls = ['click'];
+  if (mine) cls.push('is-mine');
+  if (pulse) cls.push('pulse');
+
   return (
     <>
-      <tr className={mine ? 'click is-mine' : 'click'} onClick={onToggle}>
+      <tr ref={ref} className={cls.join(' ')} onClick={onToggle}>
         <td className="rank">{row.rank}</td>
         <td>
           {row.name}
@@ -74,24 +92,19 @@ function FragmentRow({ row, mine, isOpen, onToggle, valueKey, extraKey }) {
   );
 }
 
-export default function Leaderboard({ state, mine = [], onRefresh }) {
+export default function Leaderboard({ state, mine = [], focusKey, onRefresh }) {
   const [tab, setTab] = useState('today');
   const [allTime, setAllTime] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const mineKeys = useMemo(
-    () =>
-      new Set(
-        mine.map((m) => `${(m.author || '').toLowerCase()}|${(m.name || '').toLowerCase()}`)
-      ),
+    () => new Set(mine.map((m) => keyOf(m.author, m.name))),
     [mine]
   );
-  const isMine = (row) =>
-    !row.house &&
-    mineKeys.has(`${(row.author || '').toLowerCase()}|${(row.name || '').toLowerCase()}`);
+  const isMine = (row) => !row.house && mineKeys.has(keyOf(row.author, row.name));
 
   useEffect(() => {
-    if (tab !== 'alltime' || allTime || loading) return;
+    if (tab === 'today' || allTime || loading) return;
     setLoading(true);
     fetch('/api/leaderboard/alltime', { cache: 'no-store' })
       .then((r) => r.json())
@@ -100,8 +113,10 @@ export default function Leaderboard({ state, mine = [], onRefresh }) {
       .finally(() => setLoading(false));
   }, [tab, allTime, loading]);
 
-  const mineNote =
-    mine.length > 0 ? ' Your strategies are highlighted.' : '';
+  // If a freshly-filed row should be spotlighted, jump to whichever tab shows it.
+  useEffect(() => {
+    if (focusKey) setTab('today');
+  }, [focusKey]);
 
   return (
     <div>
@@ -116,14 +131,17 @@ export default function Leaderboard({ state, mine = [], onRefresh }) {
         >
           All-Time
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'trend'}
+          onClick={() => setTab('trend')}
+        >
+          Trend
+        </button>
       </div>
 
       {tab === 'today' && (
         <>
-          <p className="hint">
-            {state.strategies.length} filed + 10 bots · ≈{state.twist.expectedRounds}{' '}
-            rounds · {state.twist.noiseLabel}. Tap a row for its rules.{mineNote}
-          </p>
           <table className="list">
             <thead>
               <tr>
@@ -138,27 +156,18 @@ export default function Leaderboard({ state, mine = [], onRefresh }) {
               valueKey="avg"
               extraKey="opponents"
               isMine={isMine}
+              focusKey={focusKey}
             />
           </table>
-          <p className="center" style={{ marginTop: 12 }}>
-            <button className="btn btn--sm btn--ghost" onClick={onRefresh}>
-              Refresh
-            </button>
-          </p>
+          <button className="linkbtn" style={{ marginTop: 10 }} onClick={onRefresh}>
+            Refresh
+          </button>
         </>
       )}
 
       {tab === 'alltime' && (
         <>
-          <p className="hint">
-            {loading
-              ? 'Replaying the last 30 days…'
-              : allTime
-              ? `Averaged across ${allTime.days} day${allTime.days === 1 ? '' : 's'}${
-                  allTime.cached ? ' · cached' : ''
-                }. Tap a row for its rules.${mineNote}`
-              : ''}
-          </p>
+          {loading && <p className="hint">Replaying the last 30 days…</p>}
           {allTime && (
             <table className="list">
               <thead>
@@ -174,8 +183,18 @@ export default function Leaderboard({ state, mine = [], onRefresh }) {
                 valueKey="avgAllTime"
                 extraKey="daysPlayed"
                 isMine={isMine}
+                focusKey={focusKey}
               />
             </table>
+          )}
+        </>
+      )}
+
+      {tab === 'trend' && (
+        <>
+          {loading && <p className="hint">Building the trend…</p>}
+          {allTime && (
+            <TrendChart series={allTime.series || []} window={allTime.window || []} />
           )}
         </>
       )}

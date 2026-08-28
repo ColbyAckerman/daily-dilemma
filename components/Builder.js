@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Seg from './Seg';
 import RuleRow, { defaultParams } from './RuleRow';
-import ResultPanel from './ResultPanel';
+import PlayRun from './PlayRun';
 import { PRESETS } from '@/lib/presets';
 import {
   validateStrategyInput,
@@ -31,9 +31,9 @@ function sig(r) {
   return r.type + '|' + r.action + '|' + JSON.stringify(r.params || {});
 }
 
-export default function Builder({ state, onFiled }) {
+export default function Builder({ state, onFiled, onShowBoard }) {
   const [draft, setDraft] = useState(BLANK);
-  const [result, setResult] = useState(null);
+  const [run, setRun] = useState(null); // simulateDraft result being played
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   // `hydrated` must be state (not a ref) so the persist effect below doesn't
@@ -137,11 +137,11 @@ export default function Builder({ state, onFiled }) {
   }
   function clearRules() {
     setDraft((d) => ({ ...d, rules: [] }));
-    setResult(null);
+    setRun(null);
   }
 
   function togglePreset(preset) {
-    setResult(null);
+    setRun(null);
     setMsg(null);
     setDraft((d) => {
       const isOn = d.rules.some((r) => r._preset === preset.key);
@@ -171,21 +171,7 @@ export default function Builder({ state, onFiled }) {
 
   const cleaned = useMemo(() => validateStrategyInput(draft).value, [draft]);
 
-  function runSimulation() {
-    setBusy(true);
-    setMsg(null);
-    setTimeout(() => {
-      try {
-        const res = simulateDraft(cleaned, state.strategies, state.twist, state.dateStr);
-        setResult(res);
-      } catch (e) {
-        setMsg({ kind: 'err', text: 'Simulation failed: ' + String(e) });
-      }
-      setBusy(false);
-    }, 10);
-  }
-
-  async function fileToArena() {
+  function play() {
     const check = validateStrategyInput(draft);
     if (!check.ok) {
       setMsg({ kind: 'err', text: check.errors.join(' ') });
@@ -195,8 +181,22 @@ export default function Builder({ state, onFiled }) {
       setMsg({ kind: 'err', text: `Callsign ${callsign} is already claimed.` });
       return;
     }
-    setBusy(true);
     setMsg(null);
+    setBusy(true);
+    setTimeout(() => {
+      try {
+        setRun(simulateDraft(cleaned, state.strategies, state.twist, state.dateStr));
+      } catch (e) {
+        setMsg({ kind: 'err', text: 'Simulation failed: ' + String(e) });
+      }
+      setBusy(false);
+    }, 10);
+  }
+
+  // Called from PlayRun's "File to the arena" button. Returns a plain result.
+  async function fileDraft() {
+    const check = validateStrategyInput(draft);
+    if (!check.ok) return { ok: false, error: check.errors.join(' ') };
     try {
       const r = await fetch('/api/strategies', {
         method: 'POST',
@@ -208,29 +208,29 @@ export default function Builder({ state, onFiled }) {
         if (data.error === 'callsign_taken') {
           setCallsignStatus({ available: false, ownedByYou: false });
         }
-        setMsg({
-          kind: 'err',
-          text: (data.errors && data.errors.join(' ')) || data.error || 'Filing failed.',
-        });
-      } else {
-        setMsg({
-          kind: 'ok',
-          text: data.updated
-            ? 'Updated. Your strategy plays from today onward.'
-            : 'Filed. It now plays every rival, every day.',
-        });
-        // We just claimed it — reflect that without waiting for a re-check.
-        setCallsignStatus({ available: true, ownedByYou: true });
-        onFiled(data.state || null, {
-          id: data.id,
-          name: check.value.name,
-          author: check.value.author,
-        });
+        return {
+          ok: false,
+          error: (data.errors && data.errors.join(' ')) || data.error || 'Filing failed.',
+        };
       }
+      setCallsignStatus({ available: true, ownedByYou: true });
+      const rank =
+        (data.state &&
+          data.state.standings.find(
+            (s) =>
+              (s.author || '').toLowerCase() === check.value.author.toLowerCase() &&
+              s.name === check.value.name
+          )?.rank) ||
+        null;
+      onFiled(data.state || null, {
+        id: data.id,
+        name: check.value.name,
+        author: check.value.author,
+      });
+      return { ok: true, updated: data.updated, rank };
     } catch (e) {
-      setMsg({ kind: 'err', text: 'Network error while filing.' });
+      return { ok: false, error: 'Network error while filing.' };
     }
-    setBusy(false);
   }
 
   return (
@@ -277,10 +277,6 @@ export default function Builder({ state, onFiled }) {
 
       <div className="section">
         <span className="label">Stack the classics</span>
-        <p className="hint">
-          Click to add a classic’s rules to your stack. Click again to remove.
-          Combine as many as you like.
-        </p>
         <div className="chips">
           {PRESETS.map((p) => {
             const on = appliedPresets.has(p.key);
@@ -305,23 +301,13 @@ export default function Builder({ state, onFiled }) {
         <div
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}
         >
-          <span className="label">Rules — checked top to bottom</span>
+          <span className="label">Rules — top to bottom</span>
           {draft.rules.length > 0 && (
-            <button
-              type="button"
-              className="linkbtn"
-              onClick={clearRules}
-            >
+            <button type="button" className="linkbtn" onClick={clearRules}>
               Clear
             </button>
           )}
         </div>
-        {draft.rules.length === 0 && (
-          <p className="hint">
-            No rules yet — stack a classic above, add your own, or just rely on
-            the fallback.
-          </p>
-        )}
         {draft.rules.map((rule, i) => (
           <RuleRow
             key={i}
@@ -352,24 +338,24 @@ export default function Builder({ state, onFiled }) {
         </div>
       </div>
 
-      <div className="btn-row">
-        <button className="btn" onClick={runSimulation} disabled={busy}>
-          {busy ? '…' : 'Test'}
-        </button>
-        <button
-          className="btn btn--primary"
-          onClick={fileToArena}
-          disabled={busy || !!callsignFormatErr || callsignTaken}
-        >
-          File to arena
-        </button>
-      </div>
+      <button
+        className="btn btn--primary btn--play"
+        onClick={play}
+        disabled={busy || !!callsignFormatErr || callsignTaken}
+      >
+        {busy ? 'Loading…' : '▶  Play'}
+      </button>
       {msg && <p className={msg.kind === 'err' ? 'err' : 'ok'}>{msg.text}</p>}
 
-      {result && (
-        <div className="section" style={{ marginTop: 26 }}>
-          <ResultPanel result={result} twist={state.twist} />
-        </div>
+      {run && (
+        <PlayRun
+          result={run}
+          callsign={callsign}
+          strategyName={draft.name}
+          onFile={fileDraft}
+          onClose={() => setRun(null)}
+          onSeeBoard={onShowBoard}
+        />
       )}
     </>
   );
@@ -377,7 +363,7 @@ export default function Builder({ state, onFiled }) {
 
 function CallsignStatus({ callsign, formatErr, status }) {
   if (!callsign) {
-    return <p className="fieldnote">Uppercase, one word, letters + underscores.</p>;
+    return <p className="fieldnote" />;
   }
   if (formatErr) {
     return <p className="fieldnote fieldnote--err">{formatErr}</p>;

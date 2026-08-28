@@ -38,13 +38,17 @@ export default function AppShell({ initialState }) {
     } catch (e) {}
   }, []);
 
+  const [focusKey, setFocusKey] = useState(null); // "author|name" of the row to spotlight
+
   const onFiled = useCallback((newState, filed) => {
     if (newState) setState(newState);
     else refresh();
     if (filed && filed.name) {
+      const key = `${(filed.author || '').toLowerCase()}|${filed.name.toLowerCase()}`;
+      setFocusKey(key);
       setMine((prev) => {
-        const key = (a) => `${(a.author || '').toLowerCase()}|${a.name.toLowerCase()}`;
-        if (prev.some((m) => key(m) === key(filed))) return prev;
+        const k = (a) => `${(a.author || '').toLowerCase()}|${a.name.toLowerCase()}`;
+        if (prev.some((m) => k(m) === key)) return prev;
         const next = [...prev, { id: filed.id, name: filed.name, author: filed.author }];
         try {
           localStorage.setItem(MINE_KEY, JSON.stringify(next));
@@ -128,12 +132,24 @@ export default function AppShell({ initialState }) {
         </p>
 
         <div className="col-main">
-          <Builder key={nonce} state={state} mine={mine} onFiled={onFiled} />
+          <Builder
+            key={nonce}
+            state={state}
+            mine={mine}
+            onFiled={onFiled}
+            onShowBoard={() => setModal('board')}
+          />
         </div>
 
         <aside className="rail">
           <span className="label">Leaderboard</span>
-          <Leaderboard key={nonce} state={state} mine={mine} onRefresh={refresh} />
+          <Leaderboard
+            key={nonce}
+            state={state}
+            mine={mine}
+            focusKey={focusKey}
+            onRefresh={refresh}
+          />
         </aside>
 
         <div className="footer-links">
@@ -152,7 +168,12 @@ export default function AppShell({ initialState }) {
       )}
       {modal === 'board' && (
         <Modal title="Leaderboard" onClose={() => setModal(null)}>
-          <Leaderboard state={state} mine={mine} onRefresh={refresh} />
+          <Leaderboard
+            state={state}
+            mine={mine}
+            focusKey={focusKey}
+            onRefresh={refresh}
+          />
         </Modal>
       )}
       {modal === 'duel' && (
