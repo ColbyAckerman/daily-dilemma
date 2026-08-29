@@ -433,11 +433,15 @@ function Intro({ issue, onPlay }) {
 }
 
 function ResultScreen({ puzzle, reveal, my, opp, score, them, streak, onShare, copied }) {
-  const field = (puzzle.bench || [])
-    .map((b) => ({ name: b.name, score: b.score, you: false }))
-    .concat([{ name: 'You', score, you: true }])
-    .sort((a, b) => b.score - a.score || (a.you ? -1 : 1));
+  const field = (puzzle.field || [])
+    .map((b) => ({ name: b.name, score: b.score, nice: b.nice, you: false }))
+    .concat([{ name: 'You', score, nice: null, you: true }])
+    .sort((a, b) => b.score - a.score || (a.you ? -1 : b.you ? 1 : a.name < b.name ? -1 : 1));
   const rank = field.findIndex((r) => r.you) + 1;
+  const youRef = useRef(null);
+  useEffect(() => {
+    youRef.current?.scrollIntoView({ block: 'center' });
+  }, []);
 
   return (
     <section className="done">
@@ -458,17 +462,28 @@ function ResultScreen({ puzzle, reveal, my, opp, score, them, streak, onShare, c
         {reveal.origin && <p className="reveal__origin">{reveal.origin}</p>}
       </div>
 
-      <table className="bench">
-        <caption>vs {reveal.name} today &nbsp;·&nbsp; you placed #{rank} of {field.length}</caption>
-        <tbody>
-          {field.map((r, i) => (
-            <tr key={i} className={r.you ? 'you' : undefined}>
-              <td>{r.name}</td>
-              <td className="n">{r.score}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p className="field__cap">
+        The field vs {reveal.name} &nbsp;·&nbsp; you placed{' '}
+        <b>#{rank}</b> of {field.length}
+      </p>
+      <div className="field">
+        <table>
+          <tbody>
+            {field.map((r, i) => (
+              <tr key={i} ref={r.you ? youRef : null} className={r.you ? 'you' : undefined}>
+                <td className="r">{i + 1}</td>
+                <td>
+                  {r.you ? null : (
+                    <i className={`fdot ${r.nice ? 'n' : 'x'}`} aria-hidden="true" />
+                  )}
+                  {r.name}
+                </td>
+                <td className="n">{r.score}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <div className="tape">
         <div className="tape__row">
