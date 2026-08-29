@@ -310,9 +310,11 @@ export default function DailyGame({ puzzle }) {
       )}
 
       <header className="topbar">
-        <button className="iconbtn" aria-label="How to play" onClick={() => setModal('help')}>
-          ?
-        </button>
+        <div className="iconrow">
+          <button className="iconbtn" aria-label="How to play" onClick={() => setModal('help')}>
+            ?
+          </button>
+        </div>
         <h1 className="topbar__title">Daily Dilemma</h1>
         <div className="iconrow">
           <button className="iconbtn" aria-label="Stats" onClick={() => setModal('stats')}>
