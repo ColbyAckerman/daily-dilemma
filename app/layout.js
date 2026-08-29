@@ -18,7 +18,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata = {
   title: 'Daily Dilemma',
   description:
-    'A daily Iterated Prisoner’s Dilemma. Build a strategy with no code, file it into a shared arena, watch it re-rank every day.',
+    'One Prisoner’s Dilemma puzzle a day. Read a hidden opponent, choose Cooperate or Defect each round, and try to beat par.',
 };
 
 export const viewport = {

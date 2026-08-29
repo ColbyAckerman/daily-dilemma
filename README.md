@@ -1,101 +1,74 @@
 # Daily Dilemma
 
-A daily [Iterated Prisoner's Dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma#The_iterated_prisoner's_dilemma)
-strategy arena. Build a strategy with a no-code rule builder, test it against a
-roster of 10 classic game-theory bots, then file it into a shared arena where it
-plays every other strategy ever submitted — under that day's randomized
-conditions. Daily leaderboard, all-time leaderboard, and a best-effort live 1v1
-duel mode.
+One [Prisoner's Dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma#The_iterated_prisoner's_dilemma)
+puzzle a day. A hidden opponent plays a fixed strategy; you choose **Cooperate**
+or **Defect** each round, trying to read what it's doing and beat par before the
+match ends at a round you can't predict. Same puzzle for everyone, Wordle-style.
 
-## Stack
+Live: **https://daily-dilemma-nine.vercel.app**
 
-- **Next.js 14** (App Router, plain JavaScript — no TypeScript)
-- **Upstash Redis** (`@upstash/redis`, REST) as the only datastore
-- Deployed on **Vercel**
-- No auth — players pick a callsign; a random client id lives in `localStorage`
+## The game
+
+- **One opponent a day**, drawn deterministically from the UTC date so everyone
+  faces the same one. It's **hidden** until the game ends.
+- Each round pays out on the standard matrix: `CC 3,3 · DD 1,1 · CD 0,5 · DC 5,0`.
+- The match runs an **unknown number of rounds** (~12–20, geometric random
+  ending) — there's no safe last-round betrayal.
+- **Par** is what plain Tit-for-Tat scores against today's opponent. The result
+  screen also shows what always-cooperate and always-defect would have scored.
+- After the reveal you learn the opponent's name, exactly what it did, and
+  whether it was **nice** (never defects first) or **nasty** — Axelrod's
+  tournaments found nice strategies win the long game.
+- **Beat-par streak** and a small stats card. **Wordle-style share string.**
+- No accounts, no backend. Everything is in `localStorage` on your device.
+
+## The opponent roster (`lib/opponents.js`)
+
+Two tiers, ~300 opponents total, so the daily opponent hasn't been seen in at
+least 30 days:
+
+- **`NAMED`** — 40 hand-built strategies, most straight from Axelrod's 1980/1984
+  tournaments (Tit for Tat, Grim/Friedman, Tester, Tranquilizer, Downing,
+  Feld, Graaskamp, Grofman, Joss…), plus Gradual (Beaufils 1996) and the
+  Zero-Determinant "Extortion" strategy (Press & Dyson 2012).
+- **`GENERATED`** — a large space assembled from ~10 parametrised archetypes
+  (reciprocators, grudgers, cyclers, majority-voters, turncoats, probers,
+  scorekeepers, sneaks, Pavlov variants, pattern-readers). Each draw produces a
+  concrete opponent with a generated name and a plain-English description of
+  exactly how it behaved.
+
+Every opponent's `nice`/`nasty` tag is **computed**, not asserted — by playing
+it against a pure cooperator and checking whether it ever defects first.
+
+## Engine (`lib/engine.js`)
+
+Pure, deterministic, no framework deps. No `Math.random()` / `Date.now()` in any
+scoring path — the whole puzzle (opponent, length, par, benchmarks) is a pure
+function of the date string.
+
+| Export | Purpose |
+| --- | --- |
+| `dailyPuzzle(dateStr?)` | today's spec: opponent ref, length, par, all-C / all-D benchmarks |
+| `simulate(oppRef, playerMoves, seedStr)` | replay a full game from a move list |
+| `revealOpponent(oppRef)` | name / blurb / nice flag / historical origin (post-game only) |
 
 ## Local development
 
 ```bash
 npm install
-npm run dev
-# http://localhost:3000
+npm run dev      # http://localhost:3000
+npm run build
 ```
 
-Redis is **optional locally**: with no credentials the app uses an in-process
-memory store (fine for a dev session, not persistent, not shared). To exercise
-the real datastore locally, copy `.env.example` to `.env.local` and fill in a
-pair of Upstash REST credentials.
+No environment variables. No database.
 
-```bash
-npm run build && npm start   # production build
-```
+## History
 
-## Environment variables
-
-`lib/redis.js` accepts either naming convention that Vercel's marketplace
-integrations inject:
-
-| Purpose | Primary name | Alternate name |
-| --- | --- | --- |
-| REST URL | `KV_REST_API_URL` | `UPSTASH_REDIS_REST_URL` |
-| REST token | `KV_REST_API_TOKEN` | `UPSTASH_REDIS_REST_TOKEN` |
-
-## Deploy (Vercel + Upstash)
-
-1. Push this repo to GitHub.
-2. In Vercel, **Add New… → Project** and import the repo (framework auto-detects
-   as Next.js).
-3. Open the project's **Storage** tab → **Create Database** → **Upstash Redis**
-   (Marketplace). Connecting it auto-injects the `KV_REST_API_*` env vars.
-4. **Redeploy** so the build picks up the new env vars.
-5. Smoke test: load the site, file a strategy, confirm it shows on the **Today**
-   board, check the twist numbers and payoff matrix render, and try a Live Duel
-   solo (bot fallback after ~15s).
-
-## How it works
-
-- **Engine** (`lib/engine.js`) — pure, dependency-free, fully deterministic from
-  a seed. No `Math.random()` / `Date.now()` in any scoring path, so every server
-  request and every viewer computes identical standings for a given day.
-- **Daily twist** — the day's *expected* match length `[160…240]` (averaging
-  200) and noise `[0/4/8/12%]` are derived from `hashStr('twist:' + YYYY-MM-DD)`
-  where the date is computed **server-side in UTC**.
-- **Random match length** — each pairing continues after every round with a
-  fixed probability `w = 1 − 1/(expected − floor)` (Axelrod-style probabilistic
-  termination), so no strategy knows when a match ends. The length is drawn from
-  its own per-pair seed, floored at 20 and capped at 3× expected.
-- **Round-robin** — 10 house bots + every strategy with `createdAt <= today`
-  play every unique pair once; score is `totalPoints / totalRoundsPlayed` (the
-  average points earned per round across the whole field).
-- **All-time** — the last 30 days are replayed with the roster as it existed on
-  each day; each strategy's daily averages are meaned. Result is cached in Redis
-  for 15 minutes (`cache:alltime:<date>`).
-- **Pool cap** — when the pool exceeds 300 filed strategies the oldest is
-  dropped on the next write.
-
-## Identity
-
-No accounts. Each device generates a persistent `dd-uid` in `localStorage`.
-A **callsign** is one uppercase word (`[A-Z_]+`, no digits/periods/spaces) and
-is claimed by the first `uid` that files under it — stored in the Redis hash
-`callsigns` (`CALLSIGN -> uid`). Other devices filing under a claimed callsign
-get `409 callsign_taken`. The "start over" reset keeps `dd-uid`, `dd-callsign`
-and the theme; it only clears the working draft and the local "my strategies"
-highlight list.
-
-## API
-
-| Route | Purpose |
-| --- | --- |
-| `GET /api/state` | today's twist + full standings + filed strategies |
-| `GET /api/callsign?name=&uid=` | normalize + availability check for a callsign |
-| `POST /api/strategies` | validate, claim callsign, upsert; returns fresh standings |
-| `GET /api/leaderboard/alltime` | cached (or freshly computed) all-time board |
-| `POST /api/live/queue` · `DELETE /api/live/queue` | join / leave the duel queue |
-| `POST /api/live/bot-match` | start a solo match vs a bot |
-| `GET /api/live/match/:id?clientId=` | poll match state |
-| `POST /api/live/move` | submit a move (bot replies in the same call) |
+The earlier version — a no-code strategy builder feeding a shared, cumulative
+arena with daily and all-time leaderboards, a trend chart, and a live-duel mode
+— lives on the **`strategy-arena`** branch. The engine here is a slimmed
+descendant of that one; the plan is to bring a real strategy builder back as an
+expert mode on top of the daily game.
 
 ## License
 
