@@ -82,7 +82,9 @@ export default function DailyGame({ puzzle }) {
   const opp = useMemo(() => resolveOpponent(puzzle.oppRef), [puzzle.oppRef]);
   const rngRef = useRef(null);
 
-  const [phase, setPhase] = useState('loading'); // loading | playing | done
+  // Default to a fresh playable board so first paint is never blank; hydration
+  // swaps in a saved (finished or partial) game if there is one.
+  const [phase, setPhase] = useState('playing'); // playing | done
   const [myMoves, setMyMoves] = useState([]);
   const [oppMoves, setOppMoves] = useState([]);
   const [modal, setModal] = useState(null); // 'help' | 'stats' | null
@@ -90,7 +92,7 @@ export default function DailyGame({ puzzle }) {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState({});
 
-  // hydrate: theme + today's saved game
+  // hydrate: theme + today's saved game (resumes a partial game too)
   useEffect(() => {
     let t = null;
     try {
@@ -104,11 +106,12 @@ export default function DailyGame({ puzzle }) {
     const h = readHistory();
     setHistory(h);
     const saved = h[puzzle.dateStr];
-    rngRef.current = mulberry32(hashStr(puzzle.seed));
-    if (saved && saved.done) {
+    // Fresh rng; replay any saved moves through it so it's positioned for the
+    // next real move.
+    const rng = mulberry32(hashStr(puzzle.seed));
+    rngRef.current = rng;
+    if (saved && typeof saved.moves === 'string' && saved.moves.length > 0) {
       const mv = saved.moves.split('');
-      // re-derive opp moves from the seed for the transcript
-      const rng = mulberry32(hashStr(puzzle.seed));
       const om = [];
       for (let r = 0; r < mv.length; r++) {
         const raw = r === 0 ? opp.first(rng) : opp.move(om, mv.slice(0, r), r, rng);
@@ -116,11 +119,9 @@ export default function DailyGame({ puzzle }) {
       }
       setMyMoves(mv);
       setOppMoves(om);
-      setPhase('done');
-    } else {
-      setPhase('playing');
+      setPhase(saved.done || mv.length >= puzzle.length ? 'done' : 'playing');
     }
-  }, [puzzle.dateStr, puzzle.seed, opp]);
+  }, [puzzle.dateStr, puzzle.seed, puzzle.length, opp]);
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -153,20 +154,19 @@ export default function DailyGame({ puzzle }) {
     setMyMoves(nextMy);
     setOppMoves(nextOpp);
 
-    if (nextMy.length >= puzzle.length) {
-      let me = 0;
-      for (let i = 0; i < nextMy.length; i++) me += payoff(nextMy[i], nextOpp[i])[0];
-      const record = {
-        moves: nextMy.join(''),
-        score: me,
-        par: puzzle.par,
-        oppRef: puzzle.oppRef,
-        done: true,
-      };
-      writeDay(puzzle.dateStr, record);
-      setHistory((h) => ({ ...h, [puzzle.dateStr]: record }));
-      setPhase('done');
-    }
+    const finished = nextMy.length >= puzzle.length;
+    let me = 0;
+    for (let i = 0; i < nextMy.length; i++) me += payoff(nextMy[i], nextOpp[i])[0];
+    const record = {
+      moves: nextMy.join(''),
+      score: me,
+      par: puzzle.par,
+      oppRef: puzzle.oppRef,
+      done: finished,
+    };
+    writeDay(puzzle.dateStr, record);
+    setHistory((h) => ({ ...h, [puzzle.dateStr]: record }));
+    if (finished) setPhase('done');
   }
 
   async function doShare() {
@@ -227,7 +227,6 @@ export default function DailyGame({ puzzle }) {
           <span>~{puzzle.expected} rounds &middot; random end</span>
         </p>
 
-        {phase === 'loading' && <div style={{ minHeight: 260 }} />}
 
         {phase === 'playing' && (
           <section className="dg">
