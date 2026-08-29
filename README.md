@@ -14,12 +14,14 @@ Live: **https://daily-dilemma-nine.vercel.app**
 - Each round pays out on the standard matrix: `CC 3,3 · DD 1,1 · CD 0,5 · DC 5,0`.
 - The match runs an **unknown number of rounds** (~12–20, geometric random
   ending) — there's no safe last-round betrayal.
-- **Par** is what plain Tit-for-Tat scores against today's opponent. The result
-  screen also shows what always-cooperate and always-defect would have scored.
-- After the reveal you learn the opponent's name, exactly what it did, and
-  whether it was **nice** (never defects first) or **nasty** — Axelrod's
-  tournaments found nice strategies win the long game.
-- **Beat-par streak** and a small stats card. **Wordle-style share string.**
+- **Signal noise** is an opt-in toggle on the start screen: every move gets a
+  1-in-10 chance of flipping in transmission (`NOISE_RATE = 0.1`), seeded per
+  `(date, round, side)` so it's identical for everyone with noise on. This is
+  the regime where forgiving strategies overtake rigid ones.
+- After the reveal you're **ranked against the full roster of named historical
+  strategies** played against the same opponent, Axelrod-tournament style, and
+  told whether the opponent was **nice** (never defects first) or **nasty**.
+- **Play streak** and a small stats card. **Wordle-style share string.**
 - No accounts, no backend. Everything is in `localStorage` on your device.
 
 ## The opponent roster (`lib/opponents.js`)
@@ -27,10 +29,13 @@ Live: **https://daily-dilemma-nine.vercel.app**
 Two tiers, ~300 opponents total, so the daily opponent hasn't been seen in at
 least 30 days:
 
-- **`NAMED`** — 40 hand-built strategies, most straight from Axelrod's 1980/1984
-  tournaments (Tit for Tat, Grim/Friedman, Tester, Tranquilizer, Downing,
-  Feld, Graaskamp, Grofman, Joss…), plus Gradual (Beaufils 1996) and the
-  Zero-Determinant "Extortion" strategy (Press & Dyson 2012).
+- **`NAMED`** — 48 hand-built strategies. Most are straight from Axelrod's
+  1980/1984 tournaments (Tit for Tat, Grim/Friedman, Tester, Tranquilizer,
+  Downing, Feld, Graaskamp, Grofman, Joss…), plus Gradual (Beaufils 1996), the
+  Zero-Determinant strategies (Press & Dyson 2012; Stewart & Plotkin 2012),
+  and the noise-era entrants — Contrite Tit for Tat (Boyd 1989), Adaptive
+  Pavlov (Li 2007), Omega TfT (Slany & Kienreich 2003), DBS/The Forecaster
+  (Au & Nau 2006), and the Southampton colluder (Rogers et al. 2004).
 - **`GENERATED`** — a large space assembled from ~10 parametrised archetypes
   (reciprocators, grudgers, cyclers, majority-voters, turncoats, probers,
   scorekeepers, sneaks, Pavlov variants, pattern-readers). Each draw produces a

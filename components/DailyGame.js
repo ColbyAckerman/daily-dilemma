@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { hashStr, mulberry32, payoff, revealOpponent } from '@/lib/engine';
+import {
+  hashStr,
+  mulberry32,
+  payoff,
+  revealOpponent,
+  transmit,
+  buildField,
+  NOISE_RATE,
+} from '@/lib/engine';
 import { resolveOpponent } from '@/lib/opponents';
 import Modal from './Modal';
 
@@ -74,9 +82,11 @@ function tileFor(me, opp) {
   if (me === 'C' && opp === 'D') return '\u{1F7E8}';
   return '⬛';
 }
-function shareText(puzzle, myMoves, oppMoves, score, rankLine) {
+function shareText(puzzle, myMoves, oppMoves, score, rankLine, noise) {
   const grid = myMoves.map((m, i) => tileFor(m, oppMoves[i])).join('');
-  return `Daily Dilemma #${puzzle.issue}\nScored ${score}${rankLine ? ` · ${rankLine}` : ''}\n${grid}`;
+  return `Daily Dilemma #${puzzle.issue}${noise ? ' ⚡' : ''}\nScored ${score}${
+    rankLine ? ` · ${rankLine}` : ''
+  }\n${grid}`;
 }
 
 function Pip({ m, dim, fresh }) {
@@ -120,6 +130,8 @@ export default function DailyGame({ puzzle }) {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState({});
   const [theme, setTheme] = useState(null);
+  const [noise, setNoise] = useState(false); // signal-noise mode
+  const [slip, setSlip] = useState(0); // bump to flash "signal slipped"
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
@@ -136,6 +148,15 @@ export default function DailyGame({ puzzle }) {
     const h = readHistory();
     setHistory(h);
     const saved = h[puzzle.dateStr];
+
+    let prefNoise = false;
+    try {
+      prefNoise = localStorage.getItem('dd-noise') === '1';
+    } catch (e) {}
+    const activeNoise = saved ? !!saved.noise : prefNoise;
+    setNoise(activeNoise);
+    const rate = activeNoise ? NOISE_RATE : 0;
+
     const rng = mulberry32(hashStr(puzzle.seed));
     rngRef.current = rng;
     if (saved) {
@@ -143,7 +164,8 @@ export default function DailyGame({ puzzle }) {
       const om = [];
       for (let r = 0; r < mv.length; r++) {
         const raw = r === 0 ? opp.first(rng) : opp.move(om, mv.slice(0, r), r, rng);
-        om.push(raw === 'D' ? 'D' : 'C');
+        const oi = raw === 'D' ? 'D' : 'C';
+        om.push(rate ? transmit(puzzle.dateStr, r, 'o', oi, rate) : oi);
       }
       setMyMoves(mv);
       setOppMoves(om);
@@ -152,7 +174,7 @@ export default function DailyGame({ puzzle }) {
   }, [puzzle.dateStr, puzzle.seed, puzzle.length, opp]);
 
   function start() {
-    const record = { moves: '', score: 0, oppRef: puzzle.oppRef, done: false };
+    const record = { moves: '', score: 0, oppRef: puzzle.oppRef, noise, done: false };
     writeDay(puzzle.dateStr, record);
     setHistory((h) => ({ ...h, [puzzle.dateStr]: record }));
     setPhase('playing');
@@ -164,6 +186,14 @@ export default function DailyGame({ puzzle }) {
     document.documentElement.setAttribute('data-theme', next);
     try {
       localStorage.setItem('dd-theme', next);
+    } catch (e) {}
+  }
+
+  function toggleNoise() {
+    const next = !noise;
+    setNoise(next);
+    try {
+      localStorage.setItem('dd-noise', next ? '1' : '0');
     } catch (e) {}
   }
 
@@ -186,24 +216,30 @@ export default function DailyGame({ puzzle }) {
 
     const r = myMoves.length;
     const rng = rngRef.current;
-    const raw = r === 0 ? opp.first(rng) : opp.move(oppMoves, myMoves, r, rng);
-    const om = raw === 'D' ? 'D' : 'C';
+    const rate = noise ? NOISE_RATE : 0;
+    const oIntentRaw = r === 0 ? opp.first(rng) : opp.move(oppMoves, myMoves, r, rng);
+    const oIntent = oIntentRaw === 'D' ? 'D' : 'C';
+    // signal noise: both sides' moves may flip in transmission
+    const pm = rate ? transmit(puzzle.dateStr, r, 'p', move, rate) : move;
+    const om = rate ? transmit(puzzle.dateStr, r, 'o', oIntent, rate) : oIntent;
+    const slipped = pm !== move;
 
     const t1 = setTimeout(() => {
-      const nextMy = [...myMoves, move];
+      const nextMy = [...myMoves, pm];
       const nextOpp = [...oppMoves, om];
       setMyMoves(nextMy);
       setOppMoves(nextOpp);
 
-      const spec = OUTCOME[move + om];
+      const spec = OUTCOME[pm + om];
       setFlash(om);
       setPlate({ word: spec.word, cls: spec.plate });
       setGain({ text: spec.gain, cls: spec.gainCls, k: r });
+      if (slipped) setSlip((n) => n + 1);
       if (om === 'D') {
         setShake(true);
         buzz([0, 35, 22, 38]);
       } else {
-        buzz(14);
+        buzz(slipped ? [0, 18, 14, 18] : 14);
       }
 
       let me = 0;
@@ -213,6 +249,7 @@ export default function DailyGame({ puzzle }) {
         moves: nextMy.join(''),
         score: me,
         oppRef: puzzle.oppRef,
+        noise,
         done: finished,
       };
       writeDay(puzzle.dateStr, record);
@@ -223,6 +260,7 @@ export default function DailyGame({ puzzle }) {
         setPlate(null);
         setShake(false);
         setArmed(null);
+        setSlip(0);
         setBusy(false);
         if (finished) setPhase('done');
       }, REVEAL_MS);
@@ -232,7 +270,7 @@ export default function DailyGame({ puzzle }) {
   }
 
   async function doShare(rankLine) {
-    const text = shareText(puzzle, myMoves, oppMoves, scores.me, rankLine);
+    const text = shareText(puzzle, myMoves, oppMoves, scores.me, rankLine, noise);
     try {
       if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) await navigator.share({ text });
       else await navigator.clipboard.writeText(text);
@@ -253,6 +291,10 @@ export default function DailyGame({ puzzle }) {
   }
 
   const stats = useMemo(() => computeStats(history), [history]);
+  const field = useMemo(
+    () => buildField(puzzle.oppRef, puzzle.length, puzzle.dateStr, noise ? NOISE_RATE : 0),
+    [puzzle.oppRef, puzzle.length, puzzle.dateStr, noise]
+  );
   const round = myMoves.length;
   const canPlay = phase === 'playing' && !busy && round < puzzle.length;
   const lead = scores.me - scores.them;
@@ -261,6 +303,11 @@ export default function DailyGame({ puzzle }) {
     <>
       {flash && <div className={`flash flash--${flash}`} />}
       {plate && <div className={`plate plate--${plate.cls}`}>{plate.word}</div>}
+      {slip > 0 && (
+        <div key={slip} className="slip" aria-hidden="true">
+          signal&nbsp;slipped
+        </div>
+      )}
 
       <header className="topbar">
         <button className="iconbtn" aria-label="How to play" onClick={() => setModal('help')}>
@@ -283,11 +330,19 @@ export default function DailyGame({ puzzle }) {
       </header>
 
       <main className={`wrap${shake ? ' shake' : ''}`}>
-        {phase === 'intro' && <Intro issue={puzzle.issue} onPlay={start} />}
+        {phase === 'intro' && (
+          <Intro
+            issue={puzzle.issue}
+            noise={noise}
+            onToggleNoise={toggleNoise}
+            onPlay={start}
+          />
+        )}
 
         {phase !== 'intro' && (
           <p className="stamp">
             {shortDate(puzzle.dateStr)} &nbsp;&middot;&nbsp; No. {puzzle.issue}
+            {noise ? ' · noise' : ''}
           </p>
         )}
 
@@ -362,6 +417,8 @@ export default function DailyGame({ puzzle }) {
           <ResultScreen
             puzzle={puzzle}
             reveal={revealOpponent(puzzle.oppRef)}
+            field={field}
+            noise={noise}
             my={myMoves}
             opp={oppMoves}
             score={scores.me}
@@ -413,7 +470,7 @@ function PayoffGrid() {
   );
 }
 
-function Intro({ issue, onPlay }) {
+function Intro({ issue, noise, onToggleNoise, onPlay }) {
   return (
     <section className="intro">
       <p className="intro__no">No. {issue}</p>
@@ -425,6 +482,15 @@ function Intro({ issue, onPlay }) {
       <p className="intro__lead">
         It ends on a round you won&rsquo;t see coming.
       </p>
+      <button
+        type="button"
+        className={`nz${noise ? ' on' : ''}`}
+        onClick={onToggleNoise}
+        aria-pressed={noise}
+      >
+        <span className="nz__dot" />
+        Signal noise&nbsp;·&nbsp;{noise ? 'ON' : 'OFF'}
+      </button>
       <button className="choice choice--play" onClick={onPlay}>
         Play
       </button>
@@ -432,8 +498,8 @@ function Intro({ issue, onPlay }) {
   );
 }
 
-function ResultScreen({ puzzle, reveal, my, opp, score, them, streak, onShare, copied }) {
-  const field = (puzzle.field || [])
+function ResultScreen({ puzzle, reveal, field: raw, noise, my, opp, score, them, streak, onShare, copied }) {
+  const field = (raw || [])
     .map((b) => ({ name: b.name, score: b.score, nice: b.nice, you: false }))
     .concat([{ name: 'You', score, nice: null, you: true }])
     .sort((a, b) => b.score - a.score || (a.you ? -1 : b.you ? 1 : a.name < b.name ? -1 : 1));
@@ -463,7 +529,8 @@ function ResultScreen({ puzzle, reveal, my, opp, score, them, streak, onShare, c
       </div>
 
       <p className="field__cap">
-        The field vs {reveal.name} &nbsp;·&nbsp; you placed{' '}
+        The field vs {reveal.name}
+        {noise ? ' (noise on)' : ''} &nbsp;·&nbsp; you placed{' '}
         <b>#{rank}</b> of {field.length}
       </p>
       <div className="field">
@@ -525,10 +592,17 @@ function HelpBody() {
         The match runs an unpredictable number of rounds — no safe final-round
         betrayal.
       </p>
+      <p>
+        When it&rsquo;s over you&rsquo;re ranked against the whole roster of
+        historical strategies played against the same opponent, and told whether
+        it was <strong>nice</strong> (never defects first) or{' '}
+        <strong>nasty</strong>.
+      </p>
       <p style={{ marginBottom: 0 }}>
-        When it&rsquo;s over you&rsquo;ll see how the textbook strategies scored
-        against the same opponent, and whether it was <strong>nice</strong>{' '}
-        (never defects first) or <strong>nasty</strong>.
+        <strong>Signal noise</strong> (optional, on the start screen) gives every
+        move a 1-in-10 chance of flipping in transmission — the setting where
+        forgiving strategies like Generous Tit-for-Tat overtake the rigid ones,
+        as Axelrod&rsquo;s later research found.
       </p>
     </div>
   );

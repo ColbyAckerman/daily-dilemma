@@ -200,6 +200,56 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   50% { transform: translateX(-5px); }
 }
 
+.slip {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 52%;
+  text-align: center;
+  z-index: 41;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--betray);
+  animation: slip 1s ease-out;
+}
+@keyframes slip {
+  0% { opacity: 0; transform: translateY(6px); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+/* signal-noise toggle on the intro */
+.nz {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 999px;
+  margin: 4px 0 8px;
+}
+.nz__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+.nz.on {
+  color: var(--betray);
+  border-color: var(--betray);
+}
+.nz.on .nz__dot { background: var(--betray); }
+
 /* ---- intro ------------------------------------------------------- */
 .intro {
   text-align: center;
