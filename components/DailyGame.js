@@ -6,8 +6,8 @@ import { resolveOpponent } from '@/lib/opponents';
 import Modal from './Modal';
 
 const HKEY = 'dd:history';
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// ---- localStorage helpers -------------------------------------------------
 function readHistory() {
   try {
     return JSON.parse(localStorage.getItem(HKEY) || '{}') || {};
@@ -22,6 +22,10 @@ function writeDay(dateStr, record) {
     localStorage.setItem(HKEY, JSON.stringify(h));
   } catch (e) {}
 }
+function shortDate(dateStr) {
+  const [, m, d] = dateStr.split('-').map(Number);
+  return `${MONTHS[m - 1]} ${d}`;
+}
 
 function computeStats(history) {
   const days = Object.keys(history)
@@ -31,17 +35,15 @@ function computeStats(history) {
   let beat = 0;
   for (const d of days) if (history[d].score >= history[d].par) beat++;
 
-  // current streak: consecutive days ending today (or yesterday) that met par
   const today = new Date();
   let streak = 0;
   for (let i = 0; i < 400; i++) {
     const ds = new Date(today.getTime() - i * 86400000).toISOString().slice(0, 10);
     const rec = history[ds];
     if (rec && rec.done && rec.score >= rec.par) streak++;
-    else if (i === 0) continue; // today not played yet doesn't break the streak
+    else if (i === 0) continue;
     else break;
   }
-  // max streak
   let max = 0;
   let run = 0;
   let prev = null;
@@ -56,43 +58,34 @@ function computeStats(history) {
   return { played, beat, streak, max };
 }
 
-// ---- tiles + share ------------------------------------------------------
 function tileFor(me, opp) {
-  if (me === 'C' && opp === 'C') return '\u{1F7E9}'; // 🟩 mutual cooperate
-  if (me === 'D' && opp === 'C') return '\u{1F7E5}'; // 🟥 you took them
-  if (me === 'C' && opp === 'D') return '\u{1F7E8}'; // 🟨 you got suckered
-  return '⬛'; // ⬛ mutual defection
+  if (me === 'C' && opp === 'C') return '\u{1F7E9}';
+  if (me === 'D' && opp === 'C') return '\u{1F7E5}';
+  if (me === 'C' && opp === 'D') return '\u{1F7E8}';
+  return '⬛';
 }
-
 function shareText(puzzle, myMoves, oppMoves, score) {
   const diff = score - puzzle.par;
-  const sign = diff > 0 ? '+' : '';
   const grid = myMoves.map((m, i) => tileFor(m, oppMoves[i])).join('');
-  return `Daily Dilemma #${puzzle.issue} — ${score} (par ${puzzle.par}, ${sign}${diff})\n${grid}\n\u{1F91D}`;
+  return `Daily Dilemma #${puzzle.issue}\n${score} vs par ${puzzle.par} (${diff >= 0 ? '+' : ''}${diff})\n${grid}`;
 }
 
-// ---- move pills -------------------------------------------------------
 function Pip({ m, dim }) {
-  return (
-    <span className={`pip pip--${m}${dim ? ' pip--dim' : ''}`}>{m}</span>
-  );
+  return <span className={`pip pip--${m}${dim ? ' pip--dim' : ''}`}>{m}</span>;
 }
 
 export default function DailyGame({ puzzle }) {
   const opp = useMemo(() => resolveOpponent(puzzle.oppRef), [puzzle.oppRef]);
   const rngRef = useRef(null);
 
-  // Default to a fresh playable board so first paint is never blank; hydration
-  // swaps in a saved (finished or partial) game if there is one.
-  const [phase, setPhase] = useState('playing'); // playing | done
+  const [phase, setPhase] = useState('intro'); // intro | playing | done
   const [myMoves, setMyMoves] = useState([]);
   const [oppMoves, setOppMoves] = useState([]);
-  const [modal, setModal] = useState(null); // 'help' | 'stats' | null
+  const [modal, setModal] = useState(null);
   const [theme, setTheme] = useState(null);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState({});
 
-  // hydrate: theme + today's saved game (resumes a partial game too)
   useEffect(() => {
     let t = null;
     try {
@@ -106,12 +99,11 @@ export default function DailyGame({ puzzle }) {
     const h = readHistory();
     setHistory(h);
     const saved = h[puzzle.dateStr];
-    // Fresh rng; replay any saved moves through it so it's positioned for the
-    // next real move.
     const rng = mulberry32(hashStr(puzzle.seed));
     rngRef.current = rng;
-    if (saved && typeof saved.moves === 'string' && saved.moves.length > 0) {
-      const mv = saved.moves.split('');
+
+    if (saved) {
+      const mv = typeof saved.moves === 'string' ? saved.moves.split('') : [];
       const om = [];
       for (let r = 0; r < mv.length; r++) {
         const raw = r === 0 ? opp.first(rng) : opp.move(om, mv.slice(0, r), r, rng);
@@ -130,6 +122,13 @@ export default function DailyGame({ puzzle }) {
     try {
       localStorage.setItem('dd-theme', next);
     } catch (e) {}
+  }
+
+  function start() {
+    const record = { moves: '', score: 0, par: puzzle.par, oppRef: puzzle.oppRef, done: false };
+    writeDay(puzzle.dateStr, record);
+    setHistory((h) => ({ ...h, [puzzle.dateStr]: record }));
+    setPhase('playing');
   }
 
   const scores = useMemo(() => {
@@ -180,7 +179,6 @@ export default function DailyGame({ puzzle }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (e) {
-      // last-ditch: select a hidden textarea
       const ta = document.createElement('textarea');
       ta.value = text;
       document.body.appendChild(ta);
@@ -221,12 +219,13 @@ export default function DailyGame({ puzzle }) {
       </header>
 
       <main className="wrap">
-        <p className="conditions">
-          <span>No. {String(puzzle.issue).padStart(3, '0')}</span>
-          <span>{puzzle.prettyDate}</span>
-          <span>~{puzzle.expected} rounds &middot; random end</span>
-        </p>
+        {phase === 'intro' && <Intro issue={puzzle.issue} onPlay={start} />}
 
+        {phase !== 'intro' && (
+          <p className="stamp">
+            {shortDate(puzzle.dateStr)} &nbsp;&middot;&nbsp; No. {puzzle.issue}
+          </p>
+        )}
 
         {phase === 'playing' && (
           <section className="dg">
@@ -238,31 +237,33 @@ export default function DailyGame({ puzzle }) {
               <div className="dg__vs">round {round + 1}</div>
               <div>
                 <b className="tnum">{scores.them}</b>
-                <span>???</span>
+                <span>&#8203;???</span>
               </div>
             </div>
 
-            <Transcript my={myMoves} opp={oppMoves} />
+            <div className="dg__tape" aria-label="Round history">
+              <div className="dg__row">
+                <span className="dg__rowk">You</span>
+                {myMoves.map((m, i) => (
+                  <Pip key={i} m={m} />
+                ))}
+              </div>
+              <div className="dg__row">
+                <span className="dg__rowk">???</span>
+                {oppMoves.map((m, i) => (
+                  <Pip key={i} m={m} dim />
+                ))}
+              </div>
+            </div>
 
             <div className="dg__buttons">
-              <button
-                className="choice choice--c"
-                onClick={() => playMove('C')}
-                disabled={!canPlay}
-              >
+              <button className="choice choice--c" onClick={() => playMove('C')} disabled={!canPlay}>
                 Cooperate
               </button>
-              <button
-                className="choice choice--d"
-                onClick={() => playMove('D')}
-                disabled={!canPlay}
-              >
+              <button className="choice choice--d" onClick={() => playMove('D')} disabled={!canPlay}>
                 Defect
               </button>
             </div>
-            <p className="dg__hint">
-              You don’t know which round is the last, or who you’re playing. Read them.
-            </p>
           </section>
         )}
 
@@ -295,58 +296,71 @@ export default function DailyGame({ puzzle }) {
   );
 }
 
-function Transcript({ my, opp }) {
-  if (my.length === 0) {
-    return <p className="dg__empty">Make your first move.</p>;
-  }
+function PayoffGrid() {
   return (
-    <div className="dg__tape" aria-label="Round history">
-      <div className="dg__row">
-        <span className="dg__rowk">You</span>
-        {my.map((m, i) => (
-          <Pip key={i} m={m} />
-        ))}
-      </div>
-      <div className="dg__row">
-        <span className="dg__rowk">???</span>
-        {opp.map((m, i) => (
-          <Pip key={i} m={m} dim />
-        ))}
-      </div>
-    </div>
+    <table className="payoff">
+      <thead>
+        <tr>
+          <th />
+          <th>They C</th>
+          <th>They D</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>You C</th>
+          <td className="cc">3, 3</td>
+          <td>0, 5</td>
+        </tr>
+        <tr>
+          <th>You D</th>
+          <td>5, 0</td>
+          <td className="dd">1, 1</td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+function Intro({ issue, onPlay }) {
+  return (
+    <section className="intro">
+      <p className="intro__no">No. {issue}</p>
+      <p className="intro__lead">
+        Each round, you and a hidden opponent choose: <b>cooperate</b> or{' '}
+        <b>defect</b>.
+      </p>
+      <PayoffGrid />
+      <p className="intro__lead">
+        It ends on a round you won&rsquo;t see coming. Beat par to keep your
+        streak.
+      </p>
+      <button className="choice choice--play" onClick={onPlay}>
+        Play
+      </button>
+    </section>
   );
 }
 
 function ResultScreen({ puzzle, reveal, my, opp, score, them, streak, onShare, copied }) {
   const diff = score - puzzle.par;
   const beat = diff >= 0;
-  const headline = beat
-    ? diff === 0
-      ? 'You matched par.'
-      : `You beat par by ${diff}.`
-    : `You came in ${-diff} under par.`;
 
   return (
     <section className="dg dg--done">
-      <div className="dg__final">
-        <div>
-          <b className="tnum">{score}</b>
-          <span>You</span>
-        </div>
-        <div className="dg__dash">–</div>
-        <div>
-          <b className="tnum">{them}</b>
-          <span>{reveal.name}</span>
-        </div>
+      <p className="res__line">
+        <b>{score}</b> You &nbsp;&nbsp;{'–'}&nbsp;&nbsp; <b>{them}</b> {reveal.name}
+      </p>
+
+      <div className={`res__delta ${beat ? 'is-good' : 'is-miss'}`}>
+        {diff >= 0 ? '+' : ''}
+        {diff}
+        <span>vs par {puzzle.par}</span>
       </div>
 
-      <p className={`dg__verdict ${beat ? 'is-good' : 'is-miss'}`}>{headline}</p>
-
-      <div className="dg__pars">
-        <span>Par (Tit-for-Tat) <b>{puzzle.par}</b></span>
-        <span>Always cooperate <b>{puzzle.allCoop}</b></span>
-        <span>Always defect <b>{puzzle.allDefect}</b></span>
-      </div>
+      <p className="res__bench">
+        all&#8209;C {puzzle.allCoop} &nbsp;&middot;&nbsp; all&#8209;D {puzzle.allDefect}
+      </p>
 
       <div className={`reveal reveal--${reveal.nice ? 'nice' : 'nasty'}`}>
         <div className="reveal__head">
@@ -354,11 +368,6 @@ function ResultScreen({ puzzle, reveal, my, opp, score, them, streak, onShare, c
           <span className="reveal__tag">{reveal.nice ? 'NICE' : 'NASTY'}</span>
         </div>
         <p className="reveal__blurb">{reveal.blurb}</p>
-        <p className="reveal__note">
-          {reveal.nice
-            ? 'Nice — it never defected before you did.'
-            : 'Nasty — it was willing to defect first.'}
-        </p>
         {reveal.origin && <p className="reveal__origin">{reveal.origin}</p>}
       </div>
 
@@ -377,14 +386,11 @@ function ResultScreen({ puzzle, reveal, my, opp, score, them, streak, onShare, c
         </div>
       </div>
 
-      {streak > 0 && (
-        <p className="dg__streak">🔥 {streak}-day par streak</p>
-      )}
+      {streak > 1 && <p className="dg__streak">{'\u{1F525}'} {streak}-day streak</p>}
 
       <button className="choice choice--share" onClick={onShare}>
-        {copied ? 'Copied!' : 'Share result'}
+        {copied ? 'Copied' : 'Share'}
       </button>
-      <p className="dg__hint">A new opponent unlocks at midnight UTC.</p>
     </section>
   );
 }
@@ -393,45 +399,20 @@ function HelpBody() {
   return (
     <div className="prose">
       <p>
-        Each round you and a hidden opponent secretly pick{' '}
-        <strong>Cooperate</strong> or <strong>Defect</strong>. Points that round:
+        Each round you and a hidden opponent secretly pick <strong>Cooperate</strong>{' '}
+        or <strong>Defect</strong>, and score:
       </p>
-      <table className="payoff">
-        <thead>
-          <tr>
-            <th></th>
-            <th>They C</th>
-            <th>They D</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th>You C</th>
-            <td className="cc">3, 3</td>
-            <td>0, 5</td>
-          </tr>
-          <tr>
-            <th>You D</th>
-            <td>5, 0</td>
-            <td className="dd">1, 1</td>
-          </tr>
-        </tbody>
-      </table>
+      <PayoffGrid />
       <p>
-        One puzzle a day, the same for everyone. The opponent is drawn from a
-        deep roster of classic and generated strategies — <strong>you won’t know
-        which</strong> until the game ends. The match runs an unknown number of
-        rounds (about a dozen and a half), so there’s no safe last-round
-        betrayal.
+        One opponent a day, the same for everyone, hidden until the game ends.
+        The match runs an unpredictable number of rounds, so there&rsquo;s no
+        safe final-round betrayal.
       </p>
-      <p>
-        <strong>Par</strong> is what plain Tit-for-Tat scores against today’s
-        opponent. Beat par and your streak grows. After the reveal you’ll learn
-        whether the opponent was <strong>nice</strong> (never defects first) or{' '}
-        <strong>nasty</strong> — Axelrod’s tournaments found nice strategies win
-        the long game.
+      <p style={{ marginBottom: 0 }}>
+        <strong>Par</strong> is Tit-for-Tat&rsquo;s score against today&rsquo;s
+        opponent. On the reveal you also learn whether it was <strong>nice</strong>{' '}
+        (never defects first) or <strong>nasty</strong>.
       </p>
-      <p style={{ marginBottom: 0 }}>No accounts. Everything is saved on this device.</p>
     </div>
   );
 }
@@ -454,7 +435,7 @@ function StatsBody({ stats }) {
       </div>
       <div>
         <b>{stats.max}</b>
-        <span>Best streak</span>
+        <span>Best</span>
       </div>
     </div>
   );
