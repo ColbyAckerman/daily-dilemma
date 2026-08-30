@@ -214,32 +214,6 @@ b { font-weight: 700; }
 .intro__lead b.d { color: var(--bad); font-weight: 600; }
 .intro__lead strong { color: var(--ink); font-weight: 700; }
 
-.hint-i {
-  width: 1.35rem;
-  height: 1.35rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 0.6ch;
-  vertical-align: -0.28em;
-  border-radius: var(--r-xs);
-  background: var(--bg-3);
-  font-size: var(--fs-cap);
-  font-weight: 700;
-  line-height: 1;
-  color: var(--ink-3);
-  transition: color 0.14s ease, background 0.14s ease;
-}
-.hint-i:hover,
-.hint-i[aria-expanded="true"] { color: var(--ink); background: var(--hair); }
-.intro__note {
-  max-width: 20rem;
-  margin: calc(var(--sp-5) * -1 + var(--sp-2)) auto var(--sp-5);
-  font-size: var(--fs-cap);
-  line-height: 1.6;
-  color: var(--ink-3);
-}
-
 /* ---- buttons --------------------------------------------- */
 .btn {
   display: block;
@@ -597,6 +571,15 @@ b { font-weight: 700; }
 .prose { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.7; }
 .prose p { margin: 0 0 var(--sp-3); }
 .prose strong { color: var(--ink); font-weight: 500; }
+.prose h3 {
+  margin: var(--sp-5) 0 var(--sp-2);
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.prose h3:first-child { margin-top: 0; }
 /* payoff illustration — moves as chips, points as numbers, your side bold */
 .payoff {
   border-collapse: collapse;
