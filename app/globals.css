@@ -180,14 +180,25 @@ b { font-weight: 700; }
   padding: var(--sp-3) var(--sp-4);
   border-bottom: 1px solid var(--hair);
 }
+/* the masthead wordmark — the one sans element, over the mono UI */
 .hdr__title {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  font-size: var(--fs-lg);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.16em;
+  padding-left: 0.16em; /* balance the trailing letter-spacing so it reads centred */
+  text-transform: uppercase;
   white-space: nowrap;
+}
+@media (min-width: 25rem) {
+  .hdr__title { font-size: 1.1rem; letter-spacing: 0.26em; padding-left: 0.26em; }
+}
+@media (min-width: 35rem) {
+  .hdr__title { font-size: 1.3rem; letter-spacing: 0.34em; padding-left: 0.34em; }
 }
 .hdr__group { display: flex; gap: var(--sp-1); }
 .ico {
