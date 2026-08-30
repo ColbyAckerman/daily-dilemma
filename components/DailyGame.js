@@ -625,9 +625,9 @@ function Intro({ noise, onToggleNoise, onPlay }) {
       </p>
       <Payoffs />
       <p className="intro__lead">
-        Defect on a cooperator to <strong>win big</strong>
+        <b className="d">DEFECT</b> a <b className="c">COOPERATOR</b> to <strong>WIN BIG</strong>
         <br />
-        defect on each other and you <strong>both lose</strong>
+        <b className="d">DEFECT</b> each other and you <strong>BOTH LOSE</strong>
       </p>
       <p className="intro__lead">
         The last round comes without warning
