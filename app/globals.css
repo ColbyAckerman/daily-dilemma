@@ -214,45 +214,17 @@ b { font-weight: 700; }
 .intro__lead b.d { color: var(--bad); font-weight: 600; }
 .intro__lead strong { color: var(--ink); font-weight: 700; }
 
-.toggle-wrap { margin: var(--sp-5) 0 var(--sp-6); }
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6ch;
-}
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.85ch;
-  font-size: var(--fs-sm);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-2);
-}
-.toggle__val {
-  min-width: 3.4em;
-  padding: 0.4em 0.85em;
-  border-radius: var(--r-xs);
-  background: var(--bg-3);
-  color: var(--ink-3);
-  letter-spacing: 0.12em;
-  transition: color 0.14s ease, background 0.14s ease;
-}
-.toggle__val.on {
-  color: var(--accent-ink);
-  background: var(--bad);
-}
 .hint-i {
-  flex: 0 0 auto;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.35rem;
+  height: 1.35rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-left: 0.6ch;
+  vertical-align: -0.28em;
   border-radius: var(--r-xs);
   background: var(--bg-3);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-cap);
   font-weight: 700;
   line-height: 1;
   color: var(--ink-3);
@@ -260,14 +232,12 @@ b { font-weight: 700; }
 }
 .hint-i:hover,
 .hint-i[aria-expanded="true"] { color: var(--ink); background: var(--hair); }
-.toggle__hint {
-  max-width: 21rem;
-  margin: var(--sp-3) auto 0;
+.intro__note {
+  max-width: 20rem;
+  margin: calc(var(--sp-5) * -1 + var(--sp-2)) auto var(--sp-5);
   font-size: var(--fs-cap);
-  line-height: 1.65;
+  line-height: 1.6;
   color: var(--ink-3);
-  text-transform: none;
-  letter-spacing: 0;
 }
 
 /* ---- buttons --------------------------------------------- */

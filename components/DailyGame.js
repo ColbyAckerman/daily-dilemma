@@ -95,9 +95,9 @@ function tile(me, opp) {
   if (me === 'C' && opp === 'D') return '\u{1F7E8}';
   return '⬛';
 }
-function shareText(puzzle, my, opp, score, place, noise) {
+function shareText(puzzle, my, opp, score, place) {
   const grid = my.map((m, i) => tile(m, opp[i])).join('');
-  return `Daily Dilemma #${puzzle.issue}${noise ? ' ⚡' : ''}\nScored ${score} · ${place}\n${grid}`;
+  return `Daily Dilemma #${puzzle.issue}\nScored ${score} · ${place}\n${grid}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,7 +116,6 @@ export default function DailyGame({ puzzle }) {
   const [fx, setFx] = useState(null); // { word, gain, kind, om, n }
   const [exchange, setExchange] = useState(null); // last resolved round, kept on screen
   const [theme, setTheme] = useState(null);
-  const [noise, setNoise] = useState(false);
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState({});
@@ -137,13 +136,7 @@ export default function DailyGame({ puzzle }) {
     setHistory(h);
     const saved = h[puzzle.dateStr];
 
-    let pref = false; // off by default; on only if the player turned it on
-    try {
-      pref = localStorage.getItem('dd-noise') === '1';
-    } catch (e) {}
-    const active = saved ? !!saved.noise : pref;
-    setNoise(active);
-    const rate = active ? NOISE_RATE : 0;
+    const rate = NOISE_RATE; // signal noise is part of the daily puzzle for everyone
 
     const rng = mulberry32(hashStr(puzzle.seed));
     rngRef.current = rng;
@@ -186,16 +179,9 @@ export default function DailyGame({ puzzle }) {
       localStorage.setItem('dd-theme', next);
     } catch (e) {}
   }
-  function toggleNoise() {
-    const next = !noise;
-    setNoise(next);
-    try {
-      localStorage.setItem('dd-noise', next ? '1' : '0');
-    } catch (e) {}
-  }
   function start() {
-    writeDay(puzzle.dateStr, { moves: '', score: 0, oppRef: puzzle.oppRef, noise, done: false });
-    setHistory((h) => ({ ...h, [puzzle.dateStr]: { moves: '', score: 0, noise, done: false } }));
+    writeDay(puzzle.dateStr, { moves: '', score: 0, oppRef: puzzle.oppRef, done: false });
+    setHistory((h) => ({ ...h, [puzzle.dateStr]: { moves: '', score: 0, done: false } }));
     setPhase('play');
   }
 
@@ -217,7 +203,7 @@ export default function DailyGame({ puzzle }) {
 
     const r = my.length;
     const rng = rngRef.current;
-    const rate = noise ? NOISE_RATE : 0;
+    const rate = NOISE_RATE;
     const oRaw = r === 0 ? opp.first(rng) : opp.move(them, my, r, rng);
     const oIntent = oRaw === 'D' ? 'D' : 'C';
     const pm = rate ? transmit(puzzle.dateStr, r, 'p', move, rate) : move;
@@ -260,12 +246,11 @@ export default function DailyGame({ puzzle }) {
         moves: nMy.join(''),
         score: myTot,
         oppRef: puzzle.oppRef,
-        noise,
         done: finished,
       });
       setHistory((h) => ({
         ...h,
-        [puzzle.dateStr]: { moves: nMy.join(''), score: myTot, noise, done: finished },
+        [puzzle.dateStr]: { moves: nMy.join(''), score: myTot, done: finished },
       }));
 
       const t2 = setTimeout(() => {
@@ -311,18 +296,18 @@ export default function DailyGame({ puzzle }) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase, canPlay, modal, my.length, busy, noise]); // eslint-disable-line
+  }, [phase, canPlay, modal, my.length, busy]); // eslint-disable-line
 
   const stats = useMemo(() => computeStats(history), [history]);
   const field = useMemo(
-    () => buildField(puzzle.oppRef, puzzle.length, puzzle.dateStr, noise ? NOISE_RATE : 0),
-    [puzzle.oppRef, puzzle.length, puzzle.dateStr, noise]
+    () => buildField(puzzle.oppRef, puzzle.length, puzzle.dateStr, NOISE_RATE),
+    [puzzle.oppRef, puzzle.length, puzzle.dateStr]
   );
 
   const lead = scores.me - scores.them;
 
   async function doShare(place) {
-    const text = shareText(puzzle, my, them, scores.me, place, noise);
+    const text = shareText(puzzle, my, them, scores.me, place);
     try {
       if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) await navigator.share({ text });
       else await navigator.clipboard.writeText(text);
@@ -375,14 +360,11 @@ export default function DailyGame({ puzzle }) {
           shaking ? ' page--shake' : ''
         }`}
       >
-        {phase === 'intro' && (
-          <Intro noise={noise} onToggleNoise={toggleNoise} onPlay={start} />
-        )}
+        {phase === 'intro' && <Intro onPlay={start} />}
 
         {phase !== 'intro' && (
           <p className="meta">
             {shortDate(puzzle.dateStr)} &middot; no. {puzzle.issue}
-            {noise ? ' · noise' : ''}
           </p>
         )}
 
@@ -460,7 +442,6 @@ export default function DailyGame({ puzzle }) {
             puzzle={puzzle}
             reveal={revealOpponent(puzzle.oppRef)}
             field={field}
-            noise={noise}
             my={my}
             them={them}
             slips={slips}
@@ -615,7 +596,7 @@ function Payoffs() {
   );
 }
 
-function Intro({ noise, onToggleNoise, onPlay }) {
+function Intro({ onPlay }) {
   const [info, setInfo] = useState(false);
   return (
     <section className="intro">
@@ -630,35 +611,21 @@ function Intro({ noise, onToggleNoise, onPlay }) {
         <b className="d">DEFECT</b> each other and you <strong>BOTH LOSE</strong>
       </p>
       <p className="intro__lead">The last round comes without warning</p>
-
-      <div className="toggle-wrap">
-        <div className="toggle-row">
-          <button
-            className="hint-i"
-            type="button"
-            aria-label="What is signal noise?"
-            aria-expanded={info}
-            onClick={() => setInfo((v) => !v)}
-          >
-            i
-          </button>
-          <button
-            className="toggle"
-            type="button"
-            role="switch"
-            aria-checked={noise}
-            onClick={onToggleNoise}
-          >
-            Signal noise
-            <span className={`toggle__val${noise ? ' on' : ''}`}>{noise ? 'ON' : 'OFF'}</span>
-          </button>
-        </div>
-        {info && (
-          <p className="toggle__hint">
-            ~1 in 10 moves flips in transit, yours or theirs. Rewards forgiving play.
-          </p>
-        )}
-      </div>
+      <p className="intro__lead">
+        Moves don&rsquo;t always land &mdash; ~1 in 10 flips in transit
+        <button
+          className="hint-i"
+          type="button"
+          aria-label="More on flipped moves"
+          aria-expanded={info}
+          onClick={() => setInfo((v) => !v)}
+        >
+          i
+        </button>
+      </p>
+      {info && (
+        <p className="intro__note">Yours and theirs. Rewards forgiving play.</p>
+      )}
 
       <button className="btn btn--accent" onClick={onPlay}>
         Play
@@ -671,7 +638,6 @@ function Result({
   puzzle,
   reveal,
   field: raw,
-  noise,
   my,
   them,
   slips,
@@ -716,8 +682,7 @@ function Result({
       </div>
 
       <p className="log__cap">
-        The field vs {reveal.name}
-        {noise ? ' · noise' : ''} &middot; you placed <b>{place}</b>
+        The field vs {reveal.name} &middot; you placed <b>{place}</b>
       </p>
       <div className="log">
         <table>
@@ -765,9 +730,9 @@ function Help() {
         first) or <strong>nasty</strong>.
       </p>
       <p style={{ marginBottom: 0 }}>
-        <strong>Signal noise</strong> (optional, on the start screen) gives every move a 1-in-10
-        chance of flipping in transmission &mdash; the setting where forgiving strategies overtake
-        rigid ones.
+        Every move has a <strong>1-in-10</strong> chance of flipping in transmission &mdash; yours
+        and the opponent&rsquo;s. It&rsquo;s the same seeded pattern for everyone, and it&rsquo;s
+        where forgiving strategies overtake rigid ones.
       </p>
     </div>
   );

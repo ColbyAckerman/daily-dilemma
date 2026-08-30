@@ -14,10 +14,11 @@ Live: **https://daily-dilemma-nine.vercel.app**
 - Each round pays out on the standard matrix: `CC 3,3 · DD 1,1 · CD 0,5 · DC 5,0`.
 - The match runs an **unknown number of rounds** (~12–20, geometric random
   ending) — there's no safe last-round betrayal.
-- **Signal noise** is an opt-in toggle on the start screen: every move gets a
-  1-in-10 chance of flipping in transmission (`NOISE_RATE = 0.1`), seeded per
-  `(date, round, side)` so it's identical for everyone with noise on. This is
-  the regime where forgiving strategies overtake rigid ones.
+- **Signal noise is always on** — part of the daily puzzle, not a setting. Every
+  move gets a 1-in-10 chance of flipping in transmission (`NOISE_RATE = 0.1`),
+  seeded per `(date, round, side)` so the flip pattern is identical for everyone.
+  This keeps the leaderboard a single fair ranking and is the regime where
+  forgiving strategies overtake rigid ones.
 - After the reveal you're **ranked against the full roster of named historical
   strategies** played against the same opponent, Axelrod-tournament style, and
   told whether the opponent was **nice** (never defects first) or **nasty**.
