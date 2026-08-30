@@ -107,7 +107,6 @@ export default function DailyGame({ puzzle }) {
   const timers = useRef([]);
 
   const [phase, setPhase] = useState('intro'); // intro | play | done
-  const [showBoot, setShowBoot] = useState(true);
   const [my, setMy] = useState([]); // transmitted player moves
   const [them, setThem] = useState([]); // transmitted opponent moves
   const [slips, setSlips] = useState([]); // round indices where the player's move flipped
@@ -149,7 +148,6 @@ export default function DailyGame({ puzzle }) {
     const rng = mulberry32(hashStr(puzzle.seed));
     rngRef.current = rng;
     if (saved) {
-      setShowBoot(false);
       const mv = typeof saved.moves === 'string' ? saved.moves.split('') : [];
       const om = [];
       for (let r = 0; r < mv.length; r++) {
@@ -298,7 +296,7 @@ export default function DailyGame({ puzzle }) {
     function onKey(e) {
       if (e.metaKey || e.ctrlKey || e.altKey || modal) return;
       const k = e.key.toLowerCase();
-      if (phase === 'intro' && !showBoot && (k === 'enter' || k === ' ')) {
+      if (phase === 'intro' && (k === 'enter' || k === ' ')) {
         e.preventDefault();
         start();
       } else if (phase === 'play' && canPlay) {
@@ -313,7 +311,7 @@ export default function DailyGame({ puzzle }) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase, showBoot, canPlay, modal, my.length, busy, noise]); // eslint-disable-line
+  }, [phase, canPlay, modal, my.length, busy, noise]); // eslint-disable-line
 
   const stats = useMemo(() => computeStats(history), [history]);
   const field = useMemo(
@@ -377,11 +375,7 @@ export default function DailyGame({ puzzle }) {
           shaking ? ' page--shake' : ''
         }`}
       >
-        {phase === 'intro' && showBoot && (
-          <Boot noisy={noise} onDone={() => setShowBoot(false)} />
-        )}
-
-        {phase === 'intro' && !showBoot && (
+        {phase === 'intro' && (
           <Intro noise={noise} onToggleNoise={toggleNoise} onPlay={start} />
         )}
 
@@ -389,7 +383,6 @@ export default function DailyGame({ puzzle }) {
           <p className="meta">
             {shortDate(puzzle.dateStr)} &middot; no. {puzzle.issue}
             {noise ? ' · noise' : ''}
-            <span className="cur" />
           </p>
         )}
 
@@ -397,9 +390,7 @@ export default function DailyGame({ puzzle }) {
           <section>
             <div className="score">
               <div className="score__side">
-                <span className="n num score__flick" key={scores.me}>
-                  {scores.me}
-                </span>
+                <span className="n num">{scores.me}</span>
                 <span className="cap">You</span>
               </div>
               <div className="score__mid">
@@ -409,9 +400,7 @@ export default function DailyGame({ puzzle }) {
                 </span>
               </div>
               <div className="score__side score__side--them">
-                <span className="n num" key={scores.them}>
-                  {scores.them}
-                </span>
+                <span className="n num">{scores.them}</span>
                 <span className="cap">Them</span>
               </div>
             </div>
@@ -419,15 +408,15 @@ export default function DailyGame({ puzzle }) {
             <Tape my={my} them={them} slips={slips} hideThemId />
 
             <div className="console" aria-live="polite">
-              {!exchange && <p className="console__dim">&gt; awaiting your first move</p>}
+              {!exchange && <p className="console__dim">Waiting for your first move.</p>}
               {exchange && (
                 <>
                   <p>
-                    &gt; you play{' '}
+                    <span className="lbl">You played </span>
                     <b className={exchange.me === 'D' ? 'd' : 'c'}>{WORD(exchange.me)}</b>
                   </p>
                   <p>
-                    &gt; opponent transmits{' '}
+                    <span className="lbl">Opponent played </span>
                     <Decode
                       key={exchange.n}
                       value={WORD(exchange.them)}
@@ -436,16 +425,15 @@ export default function DailyGame({ puzzle }) {
                     />
                   </p>
                   <p className="console__dim">
-                    payoff {exchange.gain} &middot; {exchange.leadTxt}
+                    {exchange.gain} &middot; {exchange.leadTxt}
                   </p>
                 </>
               )}
             </div>
 
             <div className="prompt">
-              round {String(Math.min(round + 1, puzzle.length)).padStart(2, '0')} &middot;{' '}
-              {busy ? 'transmitting' : 'your move'}
-              <span className="cur" />
+              Round {Math.min(round + 1, puzzle.length)} &middot;{' '}
+              {busy ? 'resolving' : 'your move'}
             </div>
 
             <div className="choices">
@@ -487,13 +475,6 @@ export default function DailyGame({ puzzle }) {
         )}
       </main>
 
-      {phase !== 'intro' || !showBoot ? (
-        <div className="telemetry" aria-hidden="true">
-          host 0x7F <span>·</span> {puzzle.seed} <span>·</span> ch{' '}
-          {noise ? 'noisy' : 'clean'}
-        </div>
-      ) : null}
-
       {modal === 'help' && (
         <Modal title="How to play" onClose={() => setModal(null)}>
           <Help />
@@ -522,60 +503,6 @@ export default function DailyGame({ puzzle }) {
 }
 
 // ---------------------------------------------------------------------------
-function Boot({ noisy, onDone }) {
-  const LINES = useMemo(
-    () => [
-      'DILEMMA TOURNAMENT HOST',
-      'establishing channel ....... OK',
-      'seating opponent ........... SEALED',
-      'match length ............... UNDISCLOSED',
-      `signal integrity ........... ${noisy ? 'DEGRADED' : 'CLEAN'}`,
-      'you have the first move.',
-    ],
-    [noisy]
-  );
-  const [n, setN] = useState(0);
-  const [out, setOut] = useState(false);
-  const doneRef = useRef(false);
-
-  function finish() {
-    if (doneRef.current) return;
-    doneRef.current = true;
-    setOut(true);
-    setTimeout(onDone, 200);
-  }
-
-  useEffect(() => {
-    if (prefersReduced()) {
-      setN(LINES.length);
-      finish();
-      return;
-    }
-    const id = setInterval(() => setN((v) => Math.min(v + 1, LINES.length)), 175);
-    return () => clearInterval(id);
-  }, [LINES]); // eslint-disable-line
-
-  useEffect(() => {
-    if (n >= LINES.length) {
-      const t = setTimeout(finish, 620);
-      return () => clearTimeout(t);
-    }
-  }, [n]); // eslint-disable-line
-
-  return (
-    <pre
-      className={`boot${out ? ' boot--out' : ''}`}
-      onClick={finish}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && finish()}
-    >
-      {LINES.slice(0, n).join('\n')}
-      {n > 0 ? <span className="cur" /> : null}
-    </pre>
-  );
-}
-
 function Decode({ value, live, className }) {
   const [txt, setTxt] = useState(live ? scramble(value.length) : value);
   useEffect(() => {
@@ -732,7 +659,7 @@ function Result({
   return (
     <section className="result">
       <p className="prompt" style={{ textAlign: 'center', marginBottom: 'var(--sp-4)' }}>
-        match complete &middot; {my.length} rounds &middot; declassifying opponent
+        Match complete &middot; {my.length} rounds
       </p>
 
       <div className="result__score num">
@@ -753,8 +680,8 @@ function Result({
       </div>
 
       <p className="log__cap">
-        tournament.log &mdash; vs {reveal.name}
-        {noise ? ' (noise)' : ''} &middot; placed <b>{place}</b>
+        The field vs {reveal.name}
+        {noise ? ' · noise' : ''} &middot; you placed <b>{place}</b>
       </p>
       <div className="log">
         <table>
