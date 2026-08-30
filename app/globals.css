@@ -266,15 +266,14 @@ b { font-weight: 700; }
 .score__side { text-align: center; }
 .score__side .n {
   display: block;
-  font-size: var(--fs-hero);
+  font-size: var(--fs-xl);
   font-weight: 700;
   line-height: 1;
-  text-shadow: var(--num-shadow);
 }
-.score__side--them .n { font-size: var(--fs-xl); color: var(--ink-3); text-shadow: none; }
+.score__side--them .n { color: var(--ink-2); }
 .score__flick { animation: flick 0.16s steps(2, jump-both) 2; }
 .score__side .cap { display: block; margin-top: var(--sp-2); }
-.score__mid { text-align: center; line-height: 1.5; }
+.score__mid { text-align: center; line-height: 1; }
 .score__lead {
   display: block;
   margin-top: var(--sp-1);
