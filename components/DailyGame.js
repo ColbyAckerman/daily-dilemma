@@ -15,11 +15,16 @@ import Modal from './Modal';
 
 const HKEY = 'dd:history';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const HOLD_MS = 360;
-const REVEAL_MS = 620;
+const HOLD_MS = 380;
+const REVEAL_MS = 780;
 
-// points you earn, by [yourMove][theirMove]
-const GAIN = { CC: 3, CD: 0, DC: 5, DD: 1 };
+// verdict word / gain / fx-kind, keyed by yourMove + theirMove
+const VERDICT = {
+  CC: ['TRUST', '+3', 'trust'],
+  DC: ['STING', '+5', 'sting'],
+  CD: ['SUCKERED', '+0', 'sucker'],
+  DD: ['DEADLOCK', '+1', 'stale'],
+};
 
 // ---------------------------------------------------------------------------
 function readHistory() {
@@ -93,6 +98,7 @@ export default function DailyGame({ puzzle }) {
   const [armed, setArmed] = useState(null);
   const [busy, setBusy] = useState(false);
   const [nudge, setNudge] = useState(0);
+  const [fx, setFx] = useState(null); // { word, gain, kind, om, n }
   const [theme, setTheme] = useState(null);
   const [noise, setNoise] = useState(false);
   const [modal, setModal] = useState(null);
@@ -192,9 +198,14 @@ export default function DailyGame({ puzzle }) {
       setMy(nMy);
       setThem(nThem);
       if (pm !== move) setSlips((s) => [...s, r]);
+
+      const [word, gain, kind] = VERDICT[pm + om];
+      setFx({ word, gain, kind, om, n: r });
       if (om === 'D') {
         setNudge((n) => n + 1);
-        buzz(18);
+        buzz(om === 'D' && pm === 'C' ? [12, 40, 22] : 16);
+      } else {
+        buzz(8);
       }
 
       let sc = 0;
@@ -217,7 +228,8 @@ export default function DailyGame({ puzzle }) {
         setBusy(false);
         if (finished) setPhase('done');
       }, REVEAL_MS);
-      timers.current.push(t2);
+      const t3 = setTimeout(() => setFx(null), 950);
+      timers.current.push(t2, t3);
     }, HOLD_MS);
     timers.current.push(t1);
   }
@@ -255,6 +267,18 @@ export default function DailyGame({ puzzle }) {
 
   return (
     <>
+      {fx && (
+        <>
+          <div className={`fx-wash fx-wash--${fx.om}`} key={`w${fx.n}`} />
+          <div className={`fx-stamp fx-stamp--${fx.kind}`} key={`s${fx.n}`}>
+            {fx.word}
+          </div>
+          <div className={`fx-gain fx-gain--${fx.kind}`} key={`g${fx.n}`}>
+            {fx.gain}
+          </div>
+        </>
+      )}
+
       <header className="hdr">
         <div className="hdr__group">
           <button className="ico" aria-label="How to play" onClick={() => setModal('help')}>
@@ -266,26 +290,20 @@ export default function DailyGame({ puzzle }) {
           <button className="ico" aria-label="Stats" onClick={() => setModal('stats')}>
             <StatsIcon />
           </button>
-          <button
-            className="ico"
-            aria-label="Theme"
-            onClick={setThemeMode}
-            suppressHydrationWarning
-          >
+          <button className="ico" aria-label="Theme" onClick={setThemeMode} suppressHydrationWarning>
             {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
           </button>
         </div>
       </header>
 
       <main className={`page${phase === 'done' ? '' : ' page--center'}`}>
-        {phase === 'intro' && (
-          <Intro noise={noise} onToggleNoise={toggleNoise} onPlay={start} />
-        )}
+        {phase === 'intro' && <Intro noise={noise} onToggleNoise={toggleNoise} onPlay={start} />}
 
         {phase !== 'intro' && (
           <p className="meta">
-            {shortDate(puzzle.dateStr)} &nbsp;&middot;&nbsp; No. {puzzle.issue}
+            {shortDate(puzzle.dateStr)} &middot; no. {puzzle.issue}
             {noise ? ' · noise' : ''}
+            <span className="cur" />
           </p>
         )}
 
@@ -293,21 +311,25 @@ export default function DailyGame({ puzzle }) {
           <section>
             <div className={`score${nudge ? ' score--nudge' : ''}`} key={nudge}>
               <div className="score__side">
-                <span className="n num">{scores.me}</span>
+                <span className="n num score__flick" key={scores.me}>
+                  {scores.me}
+                </span>
                 <span className="cap">You</span>
               </div>
               <div className="score__mid">
-                <span className="cap">Round {round + 1}</span>
+                <span className="cap">
+                  Round {Math.min(round + 1, puzzle.length)}
+                </span>
                 <span
-                  className={`score__lead num${
-                    lead > 0 ? ' up' : lead < 0 ? ' down' : ''
-                  }`}
+                  className={`score__lead num${lead > 0 ? ' up' : lead < 0 ? ' down' : ''}`}
                 >
                   {lead > 0 ? `+${lead}` : lead < 0 ? lead : '—'}
                 </span>
               </div>
               <div className="score__side score__side--them">
-                <span className="n num">{scores.them}</span>
+                <span className="n num" key={scores.them}>
+                  {scores.them}
+                </span>
                 <span className="cap">Them</span>
               </div>
             </div>
@@ -421,10 +443,10 @@ function Legend() {
         <i style={{ background: 'var(--good)' }} /> trust <b>+3</b>
       </span>
       <span>
-        <i style={{ background: 'var(--bad)' }} /> sting <b>+5</b>
+        <i style={{ background: 'var(--gold)' }} /> sting <b>+5</b>
       </span>
       <span>
-        <i style={{ background: '#d9a021' }} /> sucker <b>0</b>
+        <i style={{ background: 'var(--bad)' }} /> suckered <b>0</b>
       </span>
       <span>
         <i style={{ background: 'var(--ink-3)' }} /> deadlock <b>+1</b>
@@ -463,25 +485,22 @@ function Intro({ noise, onToggleNoise, onPlay }) {
   return (
     <section className="intro">
       <p className="intro__lead">
-        Each round, you and a hidden opponent choose: <b className="c">cooperate</b>{' '}
-        or <b className="d">defect</b>.
+        Each round, you and a hidden opponent choose: <b className="c">cooperate</b> or{' '}
+        <b className="d">defect</b>.
       </p>
       <Matrix />
       <p className="intro__lead">It ends on a round you won&rsquo;t see coming.</p>
 
-      <div
-        className="switch"
+      <button
+        className="toggle"
+        type="button"
         role="switch"
         aria-checked={noise}
-        tabIndex={0}
         onClick={onToggleNoise}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggleNoise()}
       >
         Signal noise
-        <span className="switch__track" aria-checked={noise}>
-          <span className="switch__knob" />
-        </span>
-      </div>
+        <span className={`toggle__val${noise ? ' on' : ''}`}>{noise ? 'ON' : 'OFF'}</span>
+      </button>
 
       <button className="btn btn--accent" onClick={onPlay}>
         Play
@@ -506,7 +525,7 @@ function Result({
 }) {
   const rows = (raw || [])
     .map((s) => ({ name: s.name, score: s.score, nice: s.nice, me: false }))
-    .concat([{ name: 'You', score, nice: null, me: true }])
+    .concat([{ name: 'YOU', score, nice: null, me: true }])
     .sort((a, b) => b.score - a.score || (a.me ? -1 : b.me ? 1 : a.name < b.name ? -1 : 1));
   const rank = rows.findIndex((r) => r.me) + 1;
   const place = `#${rank} of ${rows.length}`;
@@ -534,17 +553,17 @@ function Result({
         {reveal.origin && <p className="card__src">{reveal.origin}</p>}
       </div>
 
-      <p className="board__cap">
-        The field vs {reveal.name}
-        {noise ? ' (noise)' : ''} &middot; you placed <b>{place}</b>
+      <p className="log__cap">
+        tournament.log &mdash; vs {reveal.name}
+        {noise ? ' (noise)' : ''} &middot; placed <b>{place}</b>
       </p>
-      <div className="board">
+      <div className="log">
         <table>
           <tbody>
             {rows.map((r, i) => (
               <tr key={i} ref={r.me ? meRef : null} className={r.me ? 'me' : undefined}>
-                <td className="rank">{i + 1}</td>
-                <td>
+                <td className="rank">{String(i + 1).padStart(2, '0')}</td>
+                <td className="name">
                   {!r.me && <i className={`dot dot--${r.nice ? 'nice' : 'nasty'}`} />}
                   {r.name}
                 </td>
@@ -570,24 +589,23 @@ function Help() {
   return (
     <div className="prose">
       <p>
-        Each round you and a hidden opponent secretly choose <strong>Cooperate</strong>{' '}
-        or <strong>Defect</strong>, and score:
+        Each round you and a hidden opponent secretly choose <strong>Cooperate</strong> or{' '}
+        <strong>Defect</strong>, and score:
       </p>
       <Matrix />
       <p>
-        One opponent a day, the same for everyone, hidden until the game ends. The
-        match runs an unpredictable number of rounds &mdash; no safe final-round
-        betrayal.
+        One opponent a day, the same for everyone, hidden until the game ends. The match runs an
+        unpredictable number of rounds &mdash; no safe final-round betrayal.
       </p>
       <p>
-        Afterwards you&rsquo;re ranked against the full roster of historical
-        strategies played against the same opponent, and told whether it was{' '}
-        <strong>nice</strong> (never defects first) or <strong>nasty</strong>.
+        Afterwards you&rsquo;re ranked against the full roster of historical strategies played
+        against the same opponent, and told whether it was <strong>nice</strong> (never defects
+        first) or <strong>nasty</strong>.
       </p>
       <p style={{ marginBottom: 0 }}>
-        <strong>Signal noise</strong> (optional, on the start screen) gives every
-        move a 1-in-10 chance of flipping in transmission &mdash; the setting where
-        forgiving strategies overtake rigid ones.
+        <strong>Signal noise</strong> (optional, on the start screen) gives every move a 1-in-10
+        chance of flipping in transmission &mdash; the setting where forgiving strategies overtake
+        rigid ones.
       </p>
     </div>
   );

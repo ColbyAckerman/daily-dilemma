@@ -1,14 +1,7 @@
 import './globals.css';
-import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import { IBM_Plex_Mono } from 'next/font/google';
 
-const plexSans = IBM_Plex_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-const plexMono = IBM_Plex_Mono({
+const mono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-mono',
@@ -18,11 +11,11 @@ const plexMono = IBM_Plex_Mono({
 export const metadata = {
   title: 'Daily Dilemma',
   description:
-    'One Prisoner’s Dilemma puzzle a day. Read a hidden opponent, choose Cooperate or Defect each round, and try to beat par.',
+    'A daily Iterated Prisoner’s Dilemma. Read a hidden opponent, choose Cooperate or Defect each round, and place against the whole historical tournament field.',
 };
 
 export const viewport = {
-  themeColor: '#ffffff',
+  themeColor: '#0a0e0c',
   width: 'device-width',
   initialScale: 1,
 };
@@ -31,11 +24,7 @@ const themeScript = `(function(){try{var t=localStorage.getItem('dd-theme');if(t
 
 export default function RootLayout({ children }) {
   return (
-    <html
-      lang="en"
-      className={`${plexSans.variable} ${plexMono.variable}`}
-      suppressHydrationWarning
-    >
+    <html lang="en" className={mono.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
