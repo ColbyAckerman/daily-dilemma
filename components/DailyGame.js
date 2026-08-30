@@ -389,20 +389,18 @@ export default function DailyGame({ puzzle }) {
         {phase === 'play' && (
           <section>
             <div className="score">
-              <div className="score__side">
-                <span className="n num">{scores.me}</span>
-                <span className="cap">You</span>
+              <p className="cap score__round">Round {Math.min(round + 1, puzzle.length)}</p>
+              <div className="score__row">
+                <span className="score__who">You</span>
+                <span className="score__val num">{scores.me}</span>
               </div>
-              <div className="score__mid">
-                <span className="cap">Round {Math.min(round + 1, puzzle.length)}</span>
-                <span className={`score__lead num${lead > 0 ? ' up' : lead < 0 ? ' down' : ''}`}>
-                  {lead > 0 ? `+${lead}` : lead < 0 ? lead : '—'}
-                </span>
+              <div className="score__row score__row--them">
+                <span className="score__who">Them</span>
+                <span className="score__val num">{scores.them}</span>
               </div>
-              <div className="score__side score__side--them">
-                <span className="n num">{scores.them}</span>
-                <span className="cap">Them</span>
-              </div>
+              <p className={`score__lead num${lead > 0 ? ' up' : lead < 0 ? ' down' : ''}`}>
+                {lead > 0 ? `+${lead}` : lead < 0 ? lead : '—'}
+              </p>
             </div>
 
             <Tape my={my} them={them} slips={slips} hideThemId />
