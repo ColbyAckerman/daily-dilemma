@@ -620,17 +620,16 @@ function Intro({ noise, onToggleNoise, onPlay }) {
   return (
     <section className="intro">
       <p className="intro__lead">
-        Every round, you and today&rsquo;s hidden strategy each pick one:{' '}
-        <b className="c">cooperate</b> or <b className="d">defect</b>. You play many rounds.
+        Each round, you and today&rsquo;s strategy pick <b className="c">cooperate</b> or{' '}
+        <b className="d">defect</b>:
       </p>
       <Payoffs />
       <p className="intro__lead">
-        Playing nice together is good. Betraying someone who played nice is even better
-        &mdash; but if you both betray, you both do badly.
+        Betray a cooperator to win big; betray each other and you both lose.
       </p>
       <p className="intro__lead">
-        You never know which round is the last. Get as many points as you can, then see
-        how you&rsquo;d rank against every other strategy.
+        The last round comes without warning. Score high, then see how you stack up
+        against every strategy.
       </p>
 
       <div className="toggle-wrap">
@@ -657,9 +656,8 @@ function Intro({ noise, onToggleNoise, onPlay }) {
         </div>
         {info && (
           <p className="toggle__hint">
-            Sometimes a move comes out wrong. Turn this on and about 1 in 10 picks flips by
-            accident &mdash; yours or theirs &mdash; so a &ldquo;cooperate&rdquo; can land as
-            a &ldquo;defect.&rdquo; It rewards forgiving play. Off by default.
+            About 1 in 10 moves flips in transit, yours or theirs. Rewards forgiving play.
+            Off by default.
           </p>
         )}
       </div>
