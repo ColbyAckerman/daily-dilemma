@@ -210,8 +210,9 @@ b { font-weight: 700; }
   color: var(--ink-2);
 }
 .intro__lead b { color: var(--ink); font-weight: 500; }
-.intro__lead b.c { color: var(--good); }
-.intro__lead b.d { color: var(--bad); }
+.intro__lead b.c { color: var(--good); font-weight: 600; }
+.intro__lead b.d { color: var(--bad); font-weight: 600; }
+.intro__lead strong { color: var(--ink); font-weight: 700; }
 
 .toggle-wrap { margin: var(--sp-5) 0 var(--sp-6); }
 .toggle-row {
