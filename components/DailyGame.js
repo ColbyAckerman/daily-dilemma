@@ -15,8 +15,9 @@ import Modal from './Modal';
 
 const HKEY = 'dd:history';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const HOLD_MS = 380;
+const HOLD_MS = 560; // suspense between your commit and the reveal
 const REVEAL_MS = 820;
+const FX_MS = 1150;
 
 // gain / fx-kind, keyed by yourMove + theirMove
 const VERDICT = {
@@ -25,8 +26,6 @@ const VERDICT = {
   CD: ['+0', 'sucker'],
   DD: ['+1', 'stale'],
 };
-const WORD = (m) => (m === 'D' ? 'DEFECT' : 'COOPERATE');
-const GLYPHS = '#%&$@?/\\=+*01<>';
 
 function prefersReduced() {
   try {
@@ -35,10 +34,31 @@ function prefersReduced() {
     return false;
   }
 }
-function scramble(len) {
-  let s = '';
-  for (let i = 0; i < len; i++) s += GLYPHS[(Math.random() * GLYPHS.length) | 0];
-  return s;
+
+// count a number up to its target with easing
+function useCountUp(target, dur = 520, initial) {
+  const [val, setVal] = useState(initial == null ? target : initial);
+  const raf = useRef(0);
+  useEffect(() => {
+    if (val === target) return undefined;
+    if (prefersReduced()) {
+      setVal(target);
+      return undefined;
+    }
+    const from = val;
+    const delta = target - from;
+    let start = 0;
+    const tick = (ts) => {
+      if (!start) start = ts;
+      const p = Math.min(1, (ts - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(p < 1 ? Math.round(from + delta * eased) : target);
+      if (p < 1) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
+  }, [target]); // eslint-disable-line
+  return val;
 }
 
 // ---------------------------------------------------------------------------
@@ -159,10 +179,14 @@ export default function DailyGame({ puzzle }) {
           b += y;
         }
         const ld = a - b;
+        const lm = mv[mv.length - 1];
+        const lo = om[om.length - 1];
+        const [lgain, lkind] = VERDICT[lm + lo];
         setExchange({
-          me: mv[mv.length - 1],
-          them: om[om.length - 1],
-          gain: '+' + payoff(mv[mv.length - 1], om[om.length - 1])[0],
+          me: lm,
+          them: lo,
+          gain: lgain,
+          kind: lkind,
           leadTxt: ld > 0 ? `you lead +${ld}` : ld < 0 ? `you trail ${ld}` : 'dead level',
           n: mv.length - 1,
         });
@@ -217,12 +241,12 @@ export default function DailyGame({ puzzle }) {
       if (pm !== move) setSlips((s) => [...s, r]);
 
       const [gain, kind] = VERDICT[pm + om];
-      setFx({ gain, kind, om, n: r });
+      setFx({ gain, kind, om, pm, n: r });
       if (om === 'D') {
         setNudge((n) => n + 1);
-        buzz(pm === 'C' ? [10, 40, 22] : 16);
+        buzz(pm === 'C' ? [12, 45, 25] : 18);
       } else {
-        buzz(8);
+        buzz(pm === 'D' ? [8, 30, 14] : 10);
       }
 
       let myTot = 0;
@@ -237,6 +261,7 @@ export default function DailyGame({ puzzle }) {
         me: pm,
         them: om,
         gain,
+        kind,
         leadTxt: ld > 0 ? `you lead +${ld}` : ld < 0 ? `you trail ${ld}` : 'dead level',
         n: r,
       });
@@ -258,7 +283,7 @@ export default function DailyGame({ puzzle }) {
         setBusy(false);
         if (finished) setPhase('done');
       }, REVEAL_MS);
-      const t3 = setTimeout(() => setFx(null), 980);
+      const t3 = setTimeout(() => setFx(null), FX_MS);
       timers.current.push(t2, t3);
     }, HOLD_MS);
     timers.current.push(t1);
@@ -305,6 +330,8 @@ export default function DailyGame({ puzzle }) {
   );
 
   const lead = scores.me - scores.them;
+  const shownMe = useCountUp(scores.me);
+  const shownThem = useCountUp(scores.them);
 
   async function doShare(place) {
     const text = shareText(puzzle, my, them, scores.me, place);
@@ -329,14 +356,7 @@ export default function DailyGame({ puzzle }) {
 
   return (
     <>
-      {fx && (
-        <>
-          <div className={`fx-wash fx-wash--${fx.om}`} key={`w${fx.n}`} />
-          <div className={`fx-gain fx-gain--${fx.kind}`} key={`g${fx.n}`}>
-            {fx.gain}
-          </div>
-        </>
-      )}
+      {fx && <div className={`fx-wash fx-wash--${fx.om}`} key={`w${fx.n}`} />}
 
       <header className="hdr">
         <div className="hdr__group">
@@ -344,7 +364,14 @@ export default function DailyGame({ puzzle }) {
             <HelpIcon />
           </button>
         </div>
-        <h1 className="hdr__title">Daily Dilemma</h1>
+        <button
+          type="button"
+          className="hdr__title"
+          aria-label="Reload"
+          onClick={() => window.location.reload()}
+        >
+          Daily Dilemma
+        </button>
         <div className="hdr__group">
           <button className="ico" aria-label="Stats" onClick={() => setModal('stats')}>
             <StatsIcon />
@@ -374,47 +401,32 @@ export default function DailyGame({ puzzle }) {
               <p className="cap score__round">Round {Math.min(round + 1, puzzle.length)}</p>
               <div className="score__row">
                 <span className="score__who">You</span>
-                <span className="score__val num">{scores.me}</span>
+                <span className="score__val num" key={`me${scores.me}`}>
+                  {shownMe}
+                </span>
               </div>
               <div className="score__row score__row--them">
                 <span className="score__who">Them</span>
-                <span className="score__val num">{scores.them}</span>
+                <span className="score__val num" key={`th${scores.them}`}>
+                  {shownThem}
+                </span>
               </div>
               <p className={`score__lead num${lead > 0 ? ' up' : lead < 0 ? ' down' : ''}`}>
                 {lead > 0 ? `+${lead}` : lead < 0 ? lead : '—'}
               </p>
             </div>
 
+            <Arena
+              myMove={armed || exchange?.me}
+              themMove={exchange?.them}
+              rolling={!!armed && !fx}
+              gain={armed && !fx ? null : exchange?.gain}
+              kind={exchange?.kind}
+              revealKey={fx?.n}
+              note={armed && !fx ? 'reading you…' : exchange?.leadTxt}
+            />
+
             <Tape my={my} them={them} slips={slips} hideThemId />
-
-            <div className="console" aria-live="polite">
-              {!exchange && <p className="console__dim">Waiting for your first move.</p>}
-              {exchange && (
-                <>
-                  <p>
-                    <span className="lbl">You played </span>
-                    <b className={exchange.me === 'D' ? 'd' : 'c'}>{WORD(exchange.me)}</b>
-                  </p>
-                  <p>
-                    <span className="lbl">Opponent played </span>
-                    <Decode
-                      key={exchange.n}
-                      value={WORD(exchange.them)}
-                      live={!!fx && fx.n === exchange.n && !prefersReduced()}
-                      className={exchange.them === 'D' ? 'd' : 'c'}
-                    />
-                  </p>
-                  <p className="console__dim">
-                    {exchange.gain} &middot; {exchange.leadTxt}
-                  </p>
-                </>
-              )}
-            </div>
-
-            <div className="prompt">
-              Round {Math.min(round + 1, puzzle.length)} &middot;{' '}
-              {busy ? 'resolving' : 'your move'}
-            </div>
 
             <div className="choices">
               <button
@@ -422,18 +434,22 @@ export default function DailyGame({ puzzle }) {
                 onClick={() => choose('C')}
                 disabled={!canPlay}
               >
-                <kbd>C</kbd>Cooperate
+                <span className="btn__top">
+                  <kbd>C</kbd>Cooperate
+                </span>
+                <span className="btn__odds">3 or 0</span>
               </button>
               <button
                 className={`btn btn--d${armed === 'D' ? ' is-armed' : ''}`}
                 onClick={() => choose('D')}
                 disabled={!canPlay}
               >
-                <kbd>D</kbd>Defect
+                <span className="btn__top">
+                  <kbd>D</kbd>Defect
+                </span>
+                <span className="btn__odds">5 or 1</span>
               </button>
             </div>
-
-            <Legend />
           </section>
         )}
 
@@ -482,26 +498,53 @@ export default function DailyGame({ puzzle }) {
 }
 
 // ---------------------------------------------------------------------------
-function Decode({ value, live, className }) {
-  const [txt, setTxt] = useState(live ? scramble(value.length) : value);
+// The round arena — your locked move vs the opponent's, drawn live.
+function Arena({ myMove, themMove, rolling, gain, kind, revealKey, note }) {
+  const [flick, setFlick] = useState('C');
   useEffect(() => {
-    if (!live) {
-      setTxt(value);
-      return;
-    }
-    let i = 0;
-    const id = setInterval(() => {
-      i += 1;
-      if (i >= value.length + 2) {
-        clearInterval(id);
-        setTxt(value);
-        return;
-      }
-      setTxt(value.slice(0, i) + scramble(Math.max(0, value.length - i)));
-    }, 34);
+    if (!rolling || prefersReduced()) return undefined;
+    const id = setInterval(() => setFlick((f) => (f === 'C' ? 'D' : 'C')), 68);
     return () => clearInterval(id);
-  }, [value, live]);
-  return <b className={className}>{txt}</b>;
+  }, [rolling]);
+
+  const them = rolling ? flick : themMove;
+  const revealed = !rolling && gain != null;
+  return (
+    <div className={`arena${revealed ? ` arena--reveal arena--${kind}` : ''}`}>
+      <div className="arena__row">
+        <div className="arena__seat">
+          <span className="arena__who">You</span>
+          <span
+            key={myMove || 'x'}
+            className={`arena__chip${myMove ? ` chip--${myMove}` : ' arena__chip--empty'}`}
+          >
+            {myMove || ''}
+          </span>
+        </div>
+        <span className="arena__vs">vs</span>
+        <div className="arena__seat">
+          <span className="arena__who">Them</span>
+          <span
+            key={rolling ? 'roll' : `th-${revealKey == null ? them || 'x' : revealKey}`}
+            className={`arena__chip${them ? ` chip--${them}` : ' arena__chip--empty'}${
+              rolling ? ' arena__chip--roll' : revealed ? ' arena__chip--pop' : ''
+            }`}
+          >
+            {them || ''}
+          </span>
+        </div>
+      </div>
+      <div className="arena__foot">
+        {revealed ? (
+          <span key={`g-${revealKey == null ? gain : revealKey}`} className="arena__gain">
+            {gain}
+          </span>
+        ) : (
+          <span className="arena__note">{note || ' '}</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function Tape({ my, them, slips, hideThemId }) {
@@ -533,25 +576,6 @@ function Tape({ my, them, slips, hideThemId }) {
           </span>
         ))}
       </div>
-    </div>
-  );
-}
-
-function Legend() {
-  return (
-    <div className="legend" aria-hidden="true">
-      <span>
-        <i style={{ background: 'var(--good)' }} /> trust <b>+3</b>
-      </span>
-      <span>
-        <i style={{ background: 'var(--gold)' }} /> sting <b>+5</b>
-      </span>
-      <span>
-        <i style={{ background: 'var(--bad)' }} /> suckered <b>0</b>
-      </span>
-      <span>
-        <i style={{ background: 'var(--ink-3)' }} /> deadlock <b>+1</b>
-      </span>
     </div>
   );
 }
@@ -638,9 +662,11 @@ function Result({
     .sort((a, b) => b.score - a.score || (a.me ? -1 : b.me ? 1 : a.name < b.name ? -1 : 1));
   const rank = rows.findIndex((r) => r.me) + 1;
   const place = `#${rank} of ${rows.length}`;
+  const shownScore = useCountUp(score, 900, 0);
   const meRef = useRef(null);
   useEffect(() => {
-    meRef.current?.scrollIntoView({ block: 'center' });
+    const t = setTimeout(() => meRef.current?.scrollIntoView({ block: 'center' }), 900);
+    return () => clearTimeout(t);
   }, []);
 
   return (
@@ -650,7 +676,7 @@ function Result({
       </p>
 
       <div className="result__score num">
-        {score}
+        {shownScore}
         <span className="cap">your score</span>
       </div>
       <p className="result__sub">
