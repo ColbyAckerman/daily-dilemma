@@ -629,11 +629,7 @@ function Intro({ noise, onToggleNoise, onPlay }) {
         <br />
         <b className="d">DEFECT</b> each other and you <strong>BOTH LOSE</strong>
       </p>
-      <p className="intro__lead">
-        The last round comes without warning
-        <br />
-        see how you stack up against others
-      </p>
+      <p className="intro__lead">The last round comes without warning</p>
 
       <div className="toggle-wrap">
         <div className="toggle-row">
