@@ -18,12 +18,12 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const HOLD_MS = 380;
 const REVEAL_MS = 820;
 
-// verdict word / gain / fx-kind, keyed by yourMove + theirMove
+// gain / fx-kind, keyed by yourMove + theirMove
 const VERDICT = {
-  CC: ['TRUST', '+3', 'trust'],
-  DC: ['STING', '+5', 'sting'],
-  CD: ['SUCKERED', '+0', 'sucker'],
-  DD: ['DEADLOCK', '+1', 'stale'],
+  CC: ['+3', 'trust'],
+  DC: ['+5', 'sting'],
+  CD: ['+0', 'sucker'],
+  DD: ['+1', 'stale'],
 };
 const WORD = (m) => (m === 'D' ? 'DEFECT' : 'COOPERATE');
 const GLYPHS = '#%&$@?/\\=+*01<>';
@@ -232,8 +232,8 @@ export default function DailyGame({ puzzle }) {
       setThem(nThem);
       if (pm !== move) setSlips((s) => [...s, r]);
 
-      const [word, gain, kind] = VERDICT[pm + om];
-      setFx({ word, gain, kind, om, n: r });
+      const [gain, kind] = VERDICT[pm + om];
+      setFx({ gain, kind, om, n: r });
       if (om === 'D') {
         setNudge((n) => n + 1);
         buzz(pm === 'C' ? [10, 40, 22] : 16);
@@ -283,6 +283,15 @@ export default function DailyGame({ puzzle }) {
 
   const round = my.length;
   const canPlay = phase === 'play' && !busy && round < puzzle.length;
+
+  // screen shake on a betrayal (opponent defected)
+  const [shaking, setShaking] = useState(false);
+  useEffect(() => {
+    if (!nudge) return;
+    setShaking(true);
+    const t = setTimeout(() => setShaking(false), 460);
+    return () => clearTimeout(t);
+  }, [nudge]);
 
   // keyboard — the terminal takes input
   useEffect(() => {
@@ -340,9 +349,6 @@ export default function DailyGame({ puzzle }) {
       {fx && (
         <>
           <div className={`fx-wash fx-wash--${fx.om}`} key={`w${fx.n}`} />
-          <div className={`fx-stamp fx-stamp--${fx.kind}`} key={`s${fx.n}`}>
-            {fx.word}
-          </div>
           <div className={`fx-gain fx-gain--${fx.kind}`} key={`g${fx.n}`}>
             {fx.gain}
           </div>
@@ -366,7 +372,11 @@ export default function DailyGame({ puzzle }) {
         </div>
       </header>
 
-      <main className={`page${phase === 'done' ? '' : ' page--center'}`}>
+      <main
+        className={`page${phase === 'done' ? '' : ' page--center'}${
+          shaking ? ' page--shake' : ''
+        }`}
+      >
         {phase === 'intro' && showBoot && (
           <Boot noisy={noise} onDone={() => setShowBoot(false)} />
         )}
@@ -385,7 +395,7 @@ export default function DailyGame({ puzzle }) {
 
         {phase === 'play' && (
           <section>
-            <div className={`score${nudge ? ' score--nudge' : ''}`} key={nudge}>
+            <div className="score">
               <div className="score__side">
                 <span className="n num score__flick" key={scores.me}>
                   {scores.me}

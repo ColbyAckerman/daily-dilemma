@@ -262,7 +262,6 @@ b { font-weight: 700; }
   gap: var(--sp-4);
   margin-bottom: var(--sp-4);
 }
-.score--nudge { animation: glitch 0.3s steps(2) 2; }
 .score__side { text-align: center; }
 .score__side .n {
   display: block;
@@ -358,46 +357,25 @@ b { font-weight: 700; }
 .legend b { color: var(--ink); }
 
 /* ---- reveal FX (the dopamine) ------------------- */
+/* full-screen green / red edge glow — the opponent's move, felt not read */
 .fx-wash {
   position: fixed;
   inset: 0;
   z-index: 24;
   pointer-events: none;
   opacity: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    var(--fx-color) 45%,
-    var(--fx-color) 55%,
-    transparent 100%
-  );
-  background-size: 100% 300%;
-  animation: scan 0.5s ease-out;
+  animation: flash 0.62s ease-out;
 }
-.fx-wash--C { --fx-color: color-mix(in srgb, var(--good) calc(var(--wash, 0.16) * 100%), transparent); }
-.fx-wash--D { --fx-color: color-mix(in srgb, var(--bad) calc(var(--wash, 0.16) * 100%), transparent); }
-
-.fx-stamp {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 33%;
-  z-index: 25;
-  pointer-events: none;
-  text-align: center;
-  font-weight: 700;
-  font-size: clamp(1.9rem, 10vw, 2.75rem);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  text-shadow: var(--stamp-shadow);
-  animation: stamp 0.82s cubic-bezier(0.16, 1, 0.3, 1);
+.fx-wash--C {
+  background: radial-gradient(120% 78% at 50% 50%, transparent 42%,
+    color-mix(in srgb, var(--good) 26%, transparent) 100%);
+  box-shadow: inset 0 0 150px 10px color-mix(in srgb, var(--good) 52%, transparent);
 }
-.fx-stamp::before { content: ">> "; opacity: 0.28; }
-.fx-stamp::after { content: " <<"; opacity: 0.28; }
-.fx-stamp--trust { color: var(--good); }
-.fx-stamp--sting { color: var(--gold); }
-.fx-stamp--sucker { color: var(--bad); }
-.fx-stamp--stale { color: var(--ink-2); }
+.fx-wash--D {
+  background: radial-gradient(120% 78% at 50% 50%, transparent 36%,
+    color-mix(in srgb, var(--bad) 36%, transparent) 100%);
+  box-shadow: inset 0 0 170px 14px color-mix(in srgb, var(--bad) 64%, transparent);
+}
 
 .fx-gain {
   position: fixed;
@@ -679,31 +657,29 @@ b { font-weight: 700; }
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes fadeout { to { opacity: 0; } }
 @keyframes chipin { from { opacity: 0; transform: scale(0.5); } }
-@keyframes scan {
-  0% { opacity: 0; background-position: 0 100%; }
-  25% { opacity: 1; }
-  100% { opacity: 0; background-position: 0 -60%; }
-}
-@keyframes stamp {
-  0% { opacity: 0; transform: scale(0.8) skewX(-8deg); letter-spacing: 0.5em; }
-  30% { opacity: 1; transform: scale(1.03) skewX(0); }
-  72% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1); }
+@keyframes flash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0; }
 }
 @keyframes gainfloat {
   0% { opacity: 0; transform: translate(-50%, 0.6rem); }
   22% { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, -1.4rem); }
 }
-@keyframes glitch {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-3px); }
-  75% { transform: translateX(3px); }
+@keyframes shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  12% { transform: translate3d(-8px, 1px, 0); }
+  26% { transform: translate3d(7px, -2px, 0); }
+  40% { transform: translate3d(-6px, 1px, 0); }
+  54% { transform: translate3d(5px, 0, 0); }
+  68% { transform: translate3d(-3px, 1px, 0); }
+  82% { transform: translate3d(2px, 0, 0); }
 }
+.page--shake { animation: shake 0.44s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 @keyframes flick { 50% { opacity: 0.35; } }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
   .fx-wash { display: none; }
-  .fx-stamp { animation: none; opacity: 1; }
 }
