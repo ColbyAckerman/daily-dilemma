@@ -137,7 +137,7 @@ export default function DailyGame({ puzzle }) {
     setHistory(h);
     const saved = h[puzzle.dateStr];
 
-    let pref = false;
+    let pref = false; // off by default; on only if the player turned it on
     try {
       pref = localStorage.getItem('dd-noise') === '1';
     } catch (e) {}
@@ -634,6 +634,15 @@ function Intro({ noise, onToggleNoise, onPlay }) {
       <div className="toggle-wrap">
         <div className="toggle-row">
           <button
+            className="hint-i"
+            type="button"
+            aria-label="What is signal noise?"
+            aria-expanded={info}
+            onClick={() => setInfo((v) => !v)}
+          >
+            i
+          </button>
+          <button
             className="toggle"
             type="button"
             role="switch"
@@ -643,20 +652,10 @@ function Intro({ noise, onToggleNoise, onPlay }) {
             Signal noise
             <span className={`toggle__val${noise ? ' on' : ''}`}>{noise ? 'ON' : 'OFF'}</span>
           </button>
-          <button
-            className="hint-i"
-            type="button"
-            aria-label="What is signal noise?"
-            aria-expanded={info}
-            onClick={() => setInfo((v) => !v)}
-          >
-            i
-          </button>
         </div>
         {info && (
           <p className="toggle__hint">
-            About 1 in 10 moves flips in transit, yours or theirs. Rewards forgiving play.
-            Off by default.
+            ~1 in 10 moves flips in transit, yours or theirs. Rewards forgiving play.
           </p>
         )}
       </div>
