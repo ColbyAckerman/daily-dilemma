@@ -620,19 +620,19 @@ function Intro({ noise, onToggleNoise, onPlay }) {
   return (
     <section className="intro">
       <p className="intro__lead">
-        Each round, you and today&rsquo;s strategy pick <b className="c">COOPERATE</b> or{' '}
-        <b className="d">DEFECT</b>:
+        Each round, you and today&rsquo;s strategy will choose <b className="c">COOPERATE</b> or{' '}
+        <b className="d">DEFECT</b>
       </p>
       <Payoffs />
       <p className="intro__lead">
-        Betray a cooperator to <strong>win big</strong>
+        Defect on a cooperator to <strong>win big</strong>
         <br />
-        betray each other and you <strong>both lose</strong>
+        defect on each other and you <strong>both lose</strong>
       </p>
       <p className="intro__lead">
         The last round comes without warning
         <br />
-        see how you stack up against every strategy
+        see how you stack up against others
       </p>
 
       <div className="toggle-wrap">
