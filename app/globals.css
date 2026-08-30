@@ -1,33 +1,30 @@
 /* ===========================================================================
-   Daily Dilemma — a game-theory tournament terminal.
-   Monospace throughout. Dark = phosphor CRT. Light = dot-matrix printout.
+   Daily Dilemma — a game-theory tournament, monospace and calm.
+   Neutral greyscale + one accent. Light = slightly grey white.
+   Dark = matte black. No CRT.
    =========================================================================== */
 
 :root {
-  /* light — paper printout */
-  --bg: #f5f2e9;
-  --bg-2: #ece5d3;
-  --hair: #d5cbb2;
-  --ink: #1a1a16;
-  --ink-2: #6a6252;
-  --ink-3: #a99e84;
+  /* light — slightly grey white */
+  --bg: #f7f7f8;
+  --bg-2: #efeff1;
+  --hair: #e0e0e3;
+  --ink: #17171a;
+  --ink-2: #6b6b73;
+  --ink-3: #9a9aa2;
 
-  --good: #1c7a3d;        /* cooperate */
-  --good-soft: #dfebdc;
-  --bad: #bf3423;         /* defect */
-  --bad-soft: #f4e0da;
-  --gold: #97690f;        /* the +5 sting */
-  --gold-soft: #f0e6cd;
+  --good: #1a9e57;       /* cooperate */
+  --good-soft: #e5f3ec;
+  --bad: #d6432f;        /* defect */
+  --bad-soft: #fae9e6;
+  --gold: #8a6410;       /* the +5 sting */
+  --gold-soft: #f2ebda;
 
   --accent: var(--good);
-  --accent-ink: #f5f2e9;
+  --accent-ink: #ffffff;
 
-  --scanline: transparent;
-  --glow: none;
   --stamp-shadow: none;
   --num-shadow: none;
-  --vignette: transparent;
-  --flash: transparent;
 
   --fs-cap: 0.6875rem;   /* 11 */
   --fs-sm: 0.8125rem;    /* 13 */
@@ -52,48 +49,36 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0a0e0c;
-    --bg-2: #101613;
-    --hair: #1e2a24;
-    --ink: #d7e9de;
-    --ink-2: #708579;
-    --ink-3: #46564e;
-    --good: #34d67e;
-    --good-soft: #12271c;
-    --bad: #ff5a4a;
-    --bad-soft: #2c1512;
-    --gold: #ffc247;
-    --gold-soft: #2a2211;
+    --bg: #0b0b0c;
+    --bg-2: #151517;
+    --hair: #29292d;
+    --ink: #ededee;
+    --ink-2: #9a9aa1;
+    --ink-3: #63636b;
+    --good: #3ecf8e;
+    --good-soft: #14261e;
+    --bad: #f05a48;
+    --bad-soft: #2a1614;
+    --gold: #f5c451;
+    --gold-soft: #262010;
     --accent-ink: #06120b;
-    --scanline: rgba(215, 233, 222, 0.028);
-    --glow: 0 0 22px;
-    --stamp-shadow: 0 0 26px currentColor;
-    --num-shadow: 0 0 18px currentColor;
-    --vignette: radial-gradient(125% 90% at 50% 42%, transparent 52%, rgba(0, 0, 0, 0.42) 100%);
-    --flash: #cdeadb;
     --shadow-modal: 0 10px 40px rgba(0, 0, 0, 0.55);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0a0e0c;
-  --bg-2: #101613;
-  --hair: #1e2a24;
-  --ink: #d7e9de;
-  --ink-2: #708579;
-  --ink-3: #46564e;
-  --good: #34d67e;
-  --good-soft: #12271c;
-  --bad: #ff5a4a;
-  --bad-soft: #2c1512;
-  --gold: #ffc247;
-  --gold-soft: #2a2211;
+  --bg: #0b0b0c;
+  --bg-2: #151517;
+  --hair: #29292d;
+  --ink: #ededee;
+  --ink-2: #9a9aa1;
+  --ink-3: #63636b;
+  --good: #3ecf8e;
+  --good-soft: #14261e;
+  --bad: #f05a48;
+  --bad-soft: #2a1614;
+  --gold: #f5c451;
+  --gold-soft: #262010;
   --accent-ink: #06120b;
-  --scanline: rgba(215, 233, 222, 0.028);
-  --glow: 0 0 22px;
-  --stamp-shadow: 0 0 26px currentColor;
-  --num-shadow: 0 0 18px currentColor;
-  --vignette: radial-gradient(125% 90% at 50% 42%, transparent 52%, rgba(0, 0, 0, 0.42) 100%);
-  --flash: #cdeadb;
   --shadow-modal: 0 10px 40px rgba(0, 0, 0, 0.55);
 }
 
@@ -108,39 +93,6 @@ body {
   font-size: var(--fs-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-}
-/* CRT scanlines — dark only */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 30;
-  background: repeating-linear-gradient(
-    var(--scanline) 0 1px,
-    transparent 1px 3px
-  );
-}
-/* CRT vignette — dark only */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 29;
-  background: var(--vignette);
-}
-/* power-on flash — plays once on load, dark only */
-.crt-boot {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-  opacity: 0;
-  background: var(--flash);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .crt-boot { animation: flashfade 0.5s ease-out forwards; }
 }
 button {
   font: inherit;
@@ -294,15 +246,12 @@ b { font-weight: 700; }
   color: var(--bg);
   transition: transform 0.08s ease;
 }
-.btn::before { content: "["; margin-right: 1ch; opacity: 0.55; }
-.btn::after { content: "]"; margin-left: 1ch; opacity: 0.55; }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 .btn--accent {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-ink);
-  box-shadow: var(--glow) color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* ---- scoreboard --------------------------------------- */
@@ -379,22 +328,18 @@ b { font-weight: 700; }
   color: var(--ink);
   padding: var(--sp-5) var(--sp-2);
 }
-.choices .btn::before,
-.choices .btn::after { content: none; }
 .choices .btn:hover { border-color: var(--ink-2); transform: none; }
 .choices .btn--c.is-armed,
 .choices .btn--c:active {
   background: var(--good);
   border-color: var(--good);
   color: var(--bg);
-  box-shadow: var(--glow) color-mix(in srgb, var(--good) 45%, transparent);
 }
 .choices .btn--d.is-armed,
 .choices .btn--d:active {
   background: var(--bad);
   border-color: var(--bad);
   color: var(--bg);
-  box-shadow: var(--glow) color-mix(in srgb, var(--bad) 45%, transparent);
 }
 .choices .btn:disabled { opacity: 0.35; cursor: default; }
 
@@ -448,8 +393,8 @@ b { font-weight: 700; }
   text-shadow: var(--stamp-shadow);
   animation: stamp 0.82s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.fx-stamp::before { content: ">> "; opacity: 0.5; }
-.fx-stamp::after { content: " <<"; opacity: 0.5; }
+.fx-stamp::before { content: ">> "; opacity: 0.28; }
+.fx-stamp::after { content: " <<"; opacity: 0.28; }
 .fx-stamp--trust { color: var(--good); }
 .fx-stamp--sting { color: var(--gold); }
 .fx-stamp--sucker { color: var(--bad); }
@@ -670,7 +615,7 @@ b { font-weight: 700; }
   cursor: pointer;
 }
 .boot--out { animation: fadeout 0.22s ease forwards; }
-.boot .cur { background: var(--good); }
+.boot .cur { background: var(--ink-2); }
 
 .prompt {
   font-size: var(--fs-cap);
@@ -733,7 +678,6 @@ b { font-weight: 700; }
 /* ---- motion ---------------------------------- */
 @keyframes rise { from { opacity: 0; transform: translateY(0.4rem); } }
 @keyframes blink { 50% { opacity: 0; } }
-@keyframes flashfade { from { opacity: 0.42; } to { opacity: 0; } }
 @keyframes fadeout { to { opacity: 0; } }
 @keyframes chipin { from { opacity: 0; transform: scale(0.5); } }
 @keyframes scan {
@@ -761,6 +705,6 @@ b { font-weight: 700; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
-  .fx-wash, body::after, .crt-boot { display: none; }
+  .fx-wash { display: none; }
   .fx-stamp { animation: none; opacity: 1; }
 }

@@ -337,8 +337,6 @@ export default function DailyGame({ puzzle }) {
 
   return (
     <>
-      <div className="crt-boot" aria-hidden="true" />
-
       {fx && (
         <>
           <div className={`fx-wash fx-wash--${fx.om}`} key={`w${fx.n}`} />
