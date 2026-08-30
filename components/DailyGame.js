@@ -575,27 +575,41 @@ function Legend() {
   );
 }
 
-function Matrix() {
+const PAYOFFS = [
+  ['C', 'C', '3', '3'],
+  ['D', 'C', '5', '0'],
+  ['C', 'D', '0', '5'],
+  ['D', 'D', '1', '1'],
+];
+
+function Payoffs() {
   return (
-    <table className="matrix">
+    <table className="payoff">
       <thead>
-        <tr>
-          <th />
-          <th>They C</th>
-          <th>They D</th>
+        <tr className="payoff__grp">
+          <th colSpan={2}>Choice</th>
+          <th colSpan={2}>Points</th>
+        </tr>
+        <tr className="payoff__sub">
+          <th>You</th>
+          <th>Them</th>
+          <th>You</th>
+          <th>Them</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <th>You C</th>
-          <td className="r">3, 3</td>
-          <td>0, 5</td>
-        </tr>
-        <tr>
-          <th>You D</th>
-          <td>5, 0</td>
-          <td className="p">1, 1</td>
-        </tr>
+        {PAYOFFS.map(([a, b, x, y], i) => (
+          <tr key={i}>
+            <td>
+              <span className={`chip chip--${a}`}>{a}</span>
+            </td>
+            <td>
+              <span className={`chip chip--${b}`}>{b}</span>
+            </td>
+            <td className="pts pts--me">{x}</td>
+            <td className="pts">{y}</td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
@@ -605,11 +619,17 @@ function Intro({ noise, onToggleNoise, onPlay }) {
   return (
     <section className="intro">
       <p className="intro__lead">
-        Each round, you and a hidden opponent choose: <b className="c">cooperate</b> or{' '}
-        <b className="d">defect</b>.
+        Over a run of rounds, you and today&rsquo;s strategy each choose &mdash;{' '}
+        <b className="c">cooperate</b> or <b className="d">defect</b> &mdash; and score:
       </p>
-      <Matrix />
-      <p className="intro__lead">It ends on a round you won&rsquo;t see coming.</p>
+      <Payoffs />
+      <p className="intro__lead">
+        Betraying a cooperator pays the most; betraying each other pays the least. It runs an
+        unknown number of rounds, so there&rsquo;s no safe last move.
+      </p>
+      <p className="intro__lead">
+        Score as high as you can, then see how you stack up against every other strategy.
+      </p>
 
       <button
         className="toggle"
@@ -716,7 +736,7 @@ function Help() {
         Each round you and a hidden opponent secretly choose <strong>Cooperate</strong> or{' '}
         <strong>Defect</strong>, and score:
       </p>
-      <Matrix />
+      <Payoffs />
       <p>
         One opponent a day, the same for everyone, hidden until the game ends. The match runs an
         unpredictable number of rounds &mdash; no safe final-round betrayal.

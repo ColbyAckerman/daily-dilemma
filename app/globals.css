@@ -594,29 +594,49 @@ b { font-weight: 700; }
 .prose { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.7; }
 .prose p { margin: 0 0 var(--sp-3); }
 .prose strong { color: var(--ink); font-weight: 500; }
-.matrix {
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: var(--fs-sm);
-  margin: var(--sp-3) auto var(--sp-4);
-  border-radius: var(--r-sm);
-  overflow: hidden;
-  box-shadow: 0 0 0 1px var(--hair);
+/* payoff illustration — moves as chips, points as numbers, your side bold */
+.payoff {
+  border-collapse: collapse;
+  margin: var(--sp-5) auto;
 }
-.matrix th,
-.matrix td {
-  padding: 0.55rem 0.85rem;
-  text-align: center;
-  color: var(--ink);
-  border-right: 1px solid var(--hair);
+.payoff th {
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.payoff__grp th {
+  font-size: var(--fs-cap);
+  letter-spacing: 0.13em;
+  padding-bottom: var(--sp-1);
+}
+.payoff__sub th {
+  font-size: var(--fs-cap);
+  letter-spacing: 0.08em;
+  padding: 0 var(--sp-3) var(--sp-2);
   border-bottom: 1px solid var(--hair);
 }
-.matrix tr :last-child { border-right: 0; }
-.matrix tr:last-child td,
-.matrix tr:last-child th { border-bottom: 0; }
-.matrix th { color: var(--ink-3); font-weight: 500; background: var(--bg-3); }
-.matrix .r { background: var(--good-soft); }
-.matrix .p { background: var(--bad-soft); }
+.payoff tbody td {
+  padding: var(--sp-2) var(--sp-3);
+  text-align: center;
+}
+.payoff tbody tr + tr td { border-top: 1px solid var(--hair); }
+.payoff .pts {
+  width: 3ch;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+.payoff .pts--me { color: var(--ink); }
+/* vertical divider between the choice pair and the points pair */
+.payoff__grp th:last-child,
+.payoff__sub th:nth-child(3),
+.payoff tbody td:nth-child(3) {
+  border-left: 1px solid var(--hair);
+  padding-left: var(--sp-4);
+}
+.payoff__sub th:nth-child(2),
+.payoff tbody td:nth-child(2) { padding-right: var(--sp-4); }
 
 .stats {
   display: grid;
