@@ -610,7 +610,7 @@ function Intro({ onPlay }) {
         <b className="d">DEFECT</b> each other and you <strong>BOTH LOSE</strong>
       </p>
       <p className="intro__lead">The last round comes without warning</p>
-      <p className="intro__lead">~1 in 10 moves flips in transit &mdash; yours and theirs</p>
+      <p className="intro__lead">~ 1 in 10 moves flips in transit</p>
 
       <button className="btn btn--accent" onClick={onPlay}>
         Play
