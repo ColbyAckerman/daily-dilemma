@@ -213,11 +213,17 @@ b { font-weight: 700; }
 .intro__lead b.c { color: var(--good); }
 .intro__lead b.d { color: var(--bad); }
 
+.toggle-wrap { margin: var(--sp-5) 0 var(--sp-6); }
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6ch;
+}
 .toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.85ch;
-  margin: var(--sp-5) 0 var(--sp-6);
   font-size: var(--fs-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -235,6 +241,33 @@ b { font-weight: 700; }
 .toggle__val.on {
   color: var(--accent-ink);
   background: var(--bad);
+}
+.hint-i {
+  flex: 0 0 auto;
+  width: 1.2rem;
+  height: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hair);
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-3);
+  transition: color 0.14s ease, border-color 0.14s ease;
+}
+.hint-i:hover,
+.hint-i[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-3); }
+.toggle__hint {
+  max-width: 21rem;
+  margin: var(--sp-3) auto 0;
+  font-size: var(--fs-cap);
+  line-height: 1.65;
+  color: var(--ink-3);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* ---- buttons --------------------------------------------- */

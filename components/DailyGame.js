@@ -616,31 +616,53 @@ function Payoffs() {
 }
 
 function Intro({ noise, onToggleNoise, onPlay }) {
+  const [info, setInfo] = useState(false);
   return (
     <section className="intro">
       <p className="intro__lead">
-        Over a run of rounds, you and today&rsquo;s strategy each choose &mdash;{' '}
-        <b className="c">cooperate</b> or <b className="d">defect</b> &mdash; and score:
+        Every round, you and today&rsquo;s hidden strategy each pick one:{' '}
+        <b className="c">cooperate</b> or <b className="d">defect</b>. You play many rounds.
       </p>
       <Payoffs />
       <p className="intro__lead">
-        Betraying a cooperator pays the most; betraying each other pays the least. It runs an
-        unknown number of rounds, so there&rsquo;s no safe last move.
+        Playing nice together is good. Betraying someone who played nice is even better
+        &mdash; but if you both betray, you both do badly.
       </p>
       <p className="intro__lead">
-        Score as high as you can, then see how you stack up against every other strategy.
+        You never know which round is the last. Get as many points as you can, then see
+        how you&rsquo;d rank against every other strategy.
       </p>
 
-      <button
-        className="toggle"
-        type="button"
-        role="switch"
-        aria-checked={noise}
-        onClick={onToggleNoise}
-      >
-        Signal noise
-        <span className={`toggle__val${noise ? ' on' : ''}`}>{noise ? 'ON' : 'OFF'}</span>
-      </button>
+      <div className="toggle-wrap">
+        <div className="toggle-row">
+          <button
+            className="toggle"
+            type="button"
+            role="switch"
+            aria-checked={noise}
+            onClick={onToggleNoise}
+          >
+            Signal noise
+            <span className={`toggle__val${noise ? ' on' : ''}`}>{noise ? 'ON' : 'OFF'}</span>
+          </button>
+          <button
+            className="hint-i"
+            type="button"
+            aria-label="What is signal noise?"
+            aria-expanded={info}
+            onClick={() => setInfo((v) => !v)}
+          >
+            i
+          </button>
+        </div>
+        {info && (
+          <p className="toggle__hint">
+            Sometimes a move comes out wrong. Turn this on and about 1 in 10 picks flips by
+            accident &mdash; yours or theirs &mdash; so a &ldquo;cooperate&rdquo; can land as
+            a &ldquo;defect.&rdquo; It rewards forgiving play. Off by default.
+          </p>
+        )}
+      </div>
 
       <button className="btn btn--accent" onClick={onPlay}>
         Play
