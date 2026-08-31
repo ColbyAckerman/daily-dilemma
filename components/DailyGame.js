@@ -630,6 +630,8 @@ function Intro({ onPlay }) {
       </p>
       <Payoffs />
       <p className="intro__lead">
+        Both <b className="c">COOPERATE</b> and you each take <strong>3</strong>
+        <br />
         <b className="d">DEFECT</b> on a <b className="c">COOPERATOR</b> to <strong>WIN BIG</strong>
         <br />
         <b className="d">DEFECT</b> on each other and you <strong>BOTH LOSE</strong>
