@@ -702,7 +702,7 @@ function Result({
           <tbody>
             {rows.map((r, i) => (
               <tr key={i} ref={r.me ? meRef : null} className={r.me ? 'me' : undefined}>
-                <td className="rank">{String(i + 1).padStart(2, '0')}</td>
+                <td className="rank">{i + 1}</td>
                 <td className="name">
                   {!r.me && <i className={`dot dot--${r.nice ? 'nice' : 'nasty'}`} />}
                   {r.name}
@@ -763,9 +763,9 @@ function Help() {
 
       <h3>The field</h3>
       <p>
-        When it&rsquo;s over, the whole roster of named historical strategies is scored against
-        your exact opponent under the same rounds and the same noise. Where your score lands among
-        them is your placement.
+        When it&rsquo;s over, a fixed field of 100 strategies &mdash; the named historical roster
+        plus a stable cast of generated ones &mdash; is scored against your exact opponent under
+        the same rounds and the same noise. Where your score lands among them is your placement.
       </p>
 
       <h3>Nice or nasty</h3>

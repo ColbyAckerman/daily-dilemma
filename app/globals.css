@@ -548,7 +548,8 @@ b { font-weight: 700; }
 }
 .log tr + tr td { border-top: 1px solid var(--hair); }
 .log td.rank {
-  width: 2.5ch;
+  width: 3.5ch;
+  text-align: right;
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }

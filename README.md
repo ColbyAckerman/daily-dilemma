@@ -20,9 +20,11 @@ Live: **https://daily-dilemma-nine.vercel.app**
   seeded per `(date, round, side)` so the flip pattern is identical for everyone.
   This keeps the leaderboard a single fair ranking and is the regime where
   forgiving strategies overtake rigid ones.
-- After the reveal you're **ranked against the full roster of named historical
-  strategies** played against the same opponent, Axelrod-tournament style, and
-  told whether the opponent was **nice** (never defects first) or **nasty**.
+- After the reveal you're **ranked in a fixed field of 100 strategies** (the
+  named historical roster plus a stable cast of generated ones) played against
+  the same opponent, Axelrod-tournament style, and told whether the opponent was
+  **nice** (never defects first) or **nasty**. Real human entrants slot into
+  this field once a score backend is wired up.
 - **Play streak** and a small stats card. **Wordle-style share string.**
 - No accounts, no backend. Everything is in `localStorage` on your device.
 
