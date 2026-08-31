@@ -664,9 +664,117 @@ function Payoffs() {
   );
 }
 
+// --- escape scene: a striped figure whose pose reads your finish ------------
+// idle (front door) -> slump -> stand -> climb -> over -> free
+const CELL_BARS = [45, 85, 125, 165, 205];
+const POSES = {
+  idle: { head: [120, 50], sh: [120, 66], hip: [120, 110], h1: [106, 98], h2: [134, 98], f1: [110, 158], f2: [130, 158] },
+  slump: { head: [84, 126], sh: [90, 132], hip: [96, 150], h1: [78, 152], h2: [102, 150], f1: [124, 154], f2: [134, 150] },
+  stand: { head: [122, 56], sh: [124, 72], hip: [120, 112], h1: [131, 82], h2: [129, 106], f1: [107, 158], f2: [135, 158] },
+  climb: { head: [124, 72], sh: [128, 86], hip: [132, 116], h1: [150, 44], h2: [118, 74], f1: [144, 100], f2: [126, 138] },
+  over: { head: [184, 12], sh: [180, 24], hip: [176, 42], h1: [166, 30], h2: [198, 32], f1: [210, 52], f2: [160, 54] },
+  free: { head: [218, 90], sh: [214, 104], hip: [210, 132], h1: [232, 96], h2: [198, 116], f1: [228, 150], f2: [196, 136] },
+};
+
+function escapeStage(tier) {
+  if (!tier) return 'idle';
+  if (tier.includes('of the field')) return 'free';
+  if (tier.includes('\u{1F3C6}')) return 'over';
+  if (tier === 'top half') return 'stand';
+  if (tier.startsWith('top ')) return 'climb';
+  return 'slump';
+}
+
+function Figure({ pose, color }) {
+  const { head, sh, hip, h1, h2, f1, f2 } = pose;
+  const dx = hip[0] - sh[0];
+  const dy = hip[1] - sh[1];
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = (-dy / len) * 5;
+  const ny = (dx / len) * 5;
+  const tick = (t) => {
+    const cx = sh[0] + dx * t;
+    const cy = sh[1] + dy * t;
+    return `M ${cx - nx} ${cy - ny} L ${cx + nx} ${cy + ny}`;
+  };
+  return (
+    <g
+      className="escape__figure"
+      style={{ stroke: color }}
+      strokeWidth="5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    >
+      <line x1={sh[0]} y1={sh[1]} x2={hip[0]} y2={hip[1]} />
+      <line x1={sh[0]} y1={sh[1]} x2={h1[0]} y2={h1[1]} />
+      <line x1={sh[0]} y1={sh[1]} x2={h2[0]} y2={h2[1]} />
+      <line x1={hip[0]} y1={hip[1]} x2={f1[0]} y2={f1[1]} />
+      <line x1={hip[0]} y1={hip[1]} x2={f2[0]} y2={f2[1]} />
+      <circle cx={head[0]} cy={head[1]} r="8.5" fill={color} stroke="none" />
+      <path d={tick(0.34)} strokeWidth="4.5" style={{ stroke: 'var(--bg)' }} />
+      <path d={tick(0.63)} strokeWidth="4.5" style={{ stroke: 'var(--bg)' }} />
+    </g>
+  );
+}
+
+function Escape({ tier, idle = false }) {
+  const stage = idle ? 'idle' : escapeStage(tier);
+  const pose = POSES[stage] || POSES.idle;
+  const front = stage === 'climb' || stage === 'over' || stage === 'free';
+  const free = stage === 'free';
+  const color = free ? 'var(--good)' : 'var(--ink-2)';
+  const bar = (x) => {
+    if (free && x === 205)
+      return <path key={x} d="M205 18 C 206 64, 224 92, 232 116 C 237 134, 230 150, 224 160" />;
+    if (stage === 'over' && x >= 165)
+      return <line key={x} x1={x} y1="160" x2={x + (x === 205 ? 15 : 7)} y2="18" />;
+    return <line key={x} x1={x} y1="18" x2={x} y2="160" />;
+  };
+  const bars = (
+    <g
+      className="escape__bars"
+      stroke="var(--ink-3)"
+      strokeWidth="6"
+      strokeLinecap="round"
+      fill="none"
+    >
+      <line x1="40" y1="18" x2="212" y2="18" />
+      <line x1="40" y1="160" x2="212" y2="160" />
+      {CELL_BARS.map(bar)}
+    </g>
+  );
+  const fig = <Figure pose={pose} color={color} />;
+  return (
+    <div className="escape" aria-hidden="true">
+      <svg viewBox="0 0 240 180" xmlns="http://www.w3.org/2000/svg">
+        {free && (
+          <g className="escape__dashes" stroke="var(--ink-3)" strokeWidth="4" strokeLinecap="round">
+            <line x1="168" y1="110" x2="184" y2="110" />
+            <line x1="164" y1="124" x2="182" y2="124" />
+            <line x1="170" y1="138" x2="186" y2="138" />
+          </g>
+        )}
+        {front ? (
+          <>
+            {bars}
+            {fig}
+          </>
+        ) : (
+          <>
+            {fig}
+            {bars}
+          </>
+        )}
+      </svg>
+    </div>
+  );
+}
+
 function Intro({ onPlay }) {
   return (
     <section className="intro">
+      <Escape idle />
       <p className="intro__lead">
         Each round, you and today&rsquo;s strategy each choose &mdash;{' '}
         <b className="c">cooperate</b> (share the pot) or <b className="d">defect</b> (steal it).
@@ -735,6 +843,7 @@ function Result({
         {shownBeat}
         <span className="cap">of {total} strategies beaten</span>
       </div>
+      <Escape tier={tier} />
       <p className="result__tier">{tier}</p>
       <p className="result__sub">
         you scored <b>{score}</b> &middot; they scored {oppScore}
@@ -813,6 +922,8 @@ function Home({ puzzle, today, stats, copied, onShare, onReview }) {
       <p className="home__badge">
         <span className="home__check">✓</span> Solved today
       </p>
+
+      <Escape tier={has ? tier : undefined} idle={!has} />
 
       {has && (
         <>
