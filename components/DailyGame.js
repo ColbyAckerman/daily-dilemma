@@ -728,7 +728,7 @@ function Result({
   return (
     <section className="result">
       <p className="prompt" style={{ textAlign: 'center', marginBottom: 'var(--sp-4)' }}>
-        Match complete &middot; {my.length} rounds
+        Match complete
       </p>
 
       <div className="result__score num">
@@ -883,13 +883,13 @@ function Help() {
 
       <h3>Length</h3>
       <p>
-        The match ends on a round you can&rsquo;t predict, usually somewhere from 12 to 20. There
-        is no safe final defection &mdash; you never know if a round is the last.
+        The match ends on a round you can&rsquo;t predict &mdash; no announced number, no warning.
+        There is no safe final defection: you never know which round is the last.
       </p>
 
       <h3>Noise</h3>
       <p>
-        Every move has a 1-in-10 chance of flipping on the way out &mdash; yours and the
+        Every move has roughly a 1-in-14 chance of flipping on the way out &mdash; yours and the
         opponent&rsquo;s. The pattern is seeded from the date, so it&rsquo;s identical for everyone
         playing that day. It&rsquo;s the condition where forgiving strategies pull ahead of rigid
         ones: a single stray defection shouldn&rsquo;t start a feud.
