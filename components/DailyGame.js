@@ -15,8 +15,8 @@ import Modal from './Modal';
 
 const HKEY = 'dd:history';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const HOLD_MS = 560; // suspense between your commit and the reveal
-const REVEAL_MS = 820;
+const HOLD_MS = 340; // brief face-down beat before the flip
+const REVEAL_MS = 780;
 const FX_MS = 1150;
 
 // gain / fx-kind, keyed by yourMove + theirMove
@@ -424,8 +424,8 @@ export default function DailyGame({ puzzle }) {
               rolling={!!armed && !fx}
               gain={armed && !fx ? null : exchange?.gain}
               kind={exchange?.kind}
-              revealKey={fx?.n}
-              note={armed && !fx ? 'deciding…' : exchange?.leadTxt}
+              roundN={exchange?.n}
+              note={exchange?.leadTxt}
             />
 
             <Tape my={my} them={them} slips={slips} hideThemId />
@@ -500,16 +500,10 @@ export default function DailyGame({ puzzle }) {
 }
 
 // ---------------------------------------------------------------------------
-// The round arena — your locked move vs the opponent's, drawn live.
-function Arena({ myMove, themMove, rolling, gain, kind, revealKey, note }) {
-  const [flick, setFlick] = useState('C');
-  useEffect(() => {
-    if (!rolling || prefersReduced()) return undefined;
-    const id = setInterval(() => setFlick((f) => (f === 'C' ? 'D' : 'C')), 68);
-    return () => clearInterval(id);
-  }, [rolling]);
-
-  const them = rolling ? flick : themMove;
+// The round arena. Both sides commit at once: your move locks, theirs sits
+// face-down, then flips over. No flicker: nothing about their move is random
+// or picked in response to yours.
+function Arena({ myMove, themMove, rolling, gain, kind, roundN, note }) {
   const revealed = !rolling && gain != null;
   return (
     <div className={`arena${revealed ? ` arena--reveal arena--${kind}` : ''}`}>
@@ -526,19 +520,23 @@ function Arena({ myMove, themMove, rolling, gain, kind, revealKey, note }) {
         <span className="arena__vs">vs</span>
         <div className="arena__seat">
           <span className="arena__who">Them</span>
-          <span
-            key={rolling ? 'roll' : `th-${revealKey == null ? them || 'x' : revealKey}`}
-            className={`arena__chip${them ? ` chip--${them}` : ' arena__chip--empty'}${
-              rolling ? ' arena__chip--roll' : revealed ? ' arena__chip--pop' : ''
-            }`}
-          >
-            {them ? GLYPH[them] : ''}
-          </span>
+          {rolling ? (
+            <span className="arena__chip arena__chip--down">?</span>
+          ) : (
+            <span
+              key={`th-${roundN ?? 'x'}`}
+              className={`arena__chip${themMove ? ` chip--${themMove}` : ' arena__chip--empty'}${
+                revealed ? ' arena__chip--flip' : ''
+              }`}
+            >
+              {themMove ? GLYPH[themMove] : ''}
+            </span>
+          )}
         </div>
       </div>
       <div className="arena__foot">
         {revealed ? (
-          <span key={`g-${revealKey == null ? gain : revealKey}`} className="arena__gain">
+          <span key={`g-${roundN ?? 'x'}`} className="arena__gain">
             {gain}
           </span>
         ) : (

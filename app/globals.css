@@ -132,7 +132,7 @@ b { font-weight: 700; }
   justify-content: space-between;
   max-width: 34rem;
   margin: 0 auto;
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-4);
 }
 .hdr__title {
   position: absolute;
@@ -141,7 +141,7 @@ b { font-weight: 700; }
   padding: 0 0 0 0.16em;
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
     system-ui, sans-serif;
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -151,10 +151,10 @@ b { font-weight: 700; }
 }
 .hdr__title:hover { opacity: 0.65; }
 @media (min-width: 25rem) {
-  .hdr__title { font-size: 1.1rem; letter-spacing: 0.24em; padding-left: 0.24em; }
+  .hdr__title { font-size: 1.3rem; letter-spacing: 0.24em; padding-left: 0.24em; }
 }
 @media (min-width: 35rem) {
-  .hdr__title { font-size: 1.25rem; letter-spacing: 0.3em; padding-left: 0.3em; }
+  .hdr__title { font-size: 1.5rem; letter-spacing: 0.3em; padding-left: 0.3em; }
 }
 .hdr__group { display: flex; gap: var(--sp-1); }
 .ico {
@@ -221,10 +221,10 @@ b { font-weight: 700; }
 .btn {
   display: block;
   width: 100%;
-  padding: 0.95rem var(--sp-4);
+  padding: 1.2rem var(--sp-4);
   border-radius: var(--r-sm);
   font-weight: 700;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-base);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   background: var(--bg-3);
@@ -363,8 +363,15 @@ b { font-weight: 700; }
   font-weight: 700;
 }
 .arena__chip--empty { background: var(--bg-3); border: 1px dashed var(--hair); }
-.arena__chip--pop { animation: chippop 0.42s cubic-bezier(0.2, 1.5, 0.35, 1); }
-.arena__chip--roll { animation: arenaroll 0.5s ease-in-out infinite; }
+.arena__chip--down {
+  background: var(--bg-3);
+  border: 1px solid var(--hair);
+  color: var(--ink-3);
+}
+.arena__chip--flip {
+  animation: reveal-flip 0.34s cubic-bezier(0.3, 0.9, 0.3, 1.1);
+  backface-visibility: hidden;
+}
 .arena__foot {
   min-height: 2.75rem;
   display: flex;
@@ -404,8 +411,8 @@ b { font-weight: 700; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
-  padding: 1.05rem var(--sp-2);
+  gap: 0.5rem;
+  padding: 1.5rem var(--sp-2);
   border: 1.5px solid transparent;
   box-shadow: var(--shadow-1);
   transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.3, 1.2), background 0.14s ease,
@@ -423,11 +430,12 @@ b { font-weight: 700; }
 }
 .choices .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-2); }
 .choices .btn:active:not(:disabled) { transform: scale(0.97); }
-.btn__top { display: inline-flex; align-items: center; font-size: var(--fs-base); }
+.btn__top { display: inline-flex; align-items: center; font-size: var(--fs-lg); }
 .btn__odds {
-  font-size: var(--fs-cap);
+  font-size: var(--fs-sm);
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  text-transform: none;
   opacity: 0.85;
 }
 .choices .btn kbd {
@@ -695,19 +703,15 @@ b { font-weight: 700; }
   12% { opacity: 1; }
   100% { opacity: 0; }
 }
-@keyframes chippop {
-  0% { opacity: 0; transform: scale(0.4); }
-  60% { opacity: 1; transform: scale(1.14); }
-  100% { transform: scale(1); }
+@keyframes reveal-flip {
+  0% { opacity: 0.4; transform: rotateY(-72deg) scale(0.92); }
+  55% { opacity: 1; transform: rotateY(0) scale(1.08); }
+  100% { opacity: 1; transform: rotateY(0) scale(1); }
 }
 @keyframes gainpop {
   0% { opacity: 0; transform: scale(0.4) translateY(0.5rem); }
   55% { opacity: 1; transform: scale(1.16) translateY(0); }
   100% { opacity: 1; transform: scale(1); }
-}
-@keyframes arenaroll {
-  0%, 100% { transform: scale(1) rotate(0); }
-  50% { transform: scale(1.07) rotate(-2deg); }
 }
 @keyframes numbump {
   0% { transform: scale(1); }
@@ -727,5 +731,4 @@ b { font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
   .fx-wash { display: none; }
-  .arena__chip--roll { animation: none; }
 }

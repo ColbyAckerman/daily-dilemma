@@ -19,7 +19,7 @@ const sans = IBM_Plex_Sans({
 export const metadata = {
   title: 'Daily Dilemma',
   description:
-    'A daily Iterated Prisoner’s Dilemma. Read a hidden opponent, choose Cooperate or Defect each round, and place against the whole historical tournament field.',
+    'A daily Iterated Prisoner’s Dilemma. Read a hidden opponent, choose to cooperate or betray each round, and place against the whole historical tournament field.',
 };
 
 export const viewport = {
