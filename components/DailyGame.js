@@ -8,6 +8,8 @@ import {
   revealOpponent,
   transmit,
   buildField,
+  matchStory,
+  bestScore,
   NOISE_RATE,
 } from '@/lib/engine';
 import { resolveOpponent } from '@/lib/opponents';
@@ -27,6 +29,16 @@ const VERDICT = {
   DD: ['+1', 'stale'],
 };
 const GLYPH = { C: 'C', D: 'D' };
+
+// how a finish reads: 🏆 top of the field / 🏆 top X% / top X% / top half / bottom half
+function tierLabel(beat, total) {
+  if (!total) return '';
+  const topPct = Math.ceil(((total - beat) / total) * 100);
+  if (beat >= total - 3) return '\u{1F3C6} top of the field';
+  if (topPct <= 10) return `\u{1F3C6} top ${topPct}%`;
+  if (topPct <= 25) return `top ${topPct}%`;
+  return total - beat <= Math.floor(total / 2) ? 'top half' : 'bottom half';
+}
 
 function prefersReduced() {
   try {
@@ -654,19 +666,17 @@ function Result({
   const total = rows.length;
   const beat = total - rank;
   const place = `#${rank} of ${total}`;
+  const tier = tierLabel(beat, total);
   const share = `Beat ${beat} of ${total}`;
-  const topPct = Math.ceil((rank / total) * 100);
-  const tier =
-    beat >= total - 3
-      ? '\u{1F3C6} top of the field'
-      : topPct <= 10
-      ? `\u{1F3C6} top ${topPct}%`
-      : topPct <= 25
-      ? `top ${topPct}%`
-      : rank <= Math.floor(total / 2)
-      ? 'top half'
-      : 'bottom half';
   const shownBeat = useCountUp(beat, 900, 0);
+  const story = useMemo(
+    () => matchStory(puzzle.oppRef, my, them, puzzle.dateStr, NOISE_RATE),
+    [puzzle.oppRef, my, them, puzzle.dateStr]
+  );
+  const best = useMemo(
+    () => bestScore(puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr, NOISE_RATE),
+    [puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr]
+  );
   const meRef = useRef(null);
   useEffect(() => {
     const t = setTimeout(() => meRef.current?.scrollIntoView({ block: 'center' }), 900);
@@ -693,8 +703,16 @@ function Result({
           <span className="card__name">{reveal.name}</span>
           <span className="tag">{reveal.nice ? 'NICE' : 'NASTY'}</span>
         </div>
+        <p className="card__fam">{reveal.family}</p>
         <p className="card__blurb">{reveal.blurb}</p>
+        <p className="card__hint">{reveal.familyHint}</p>
         {reveal.origin && <p className="card__src">{reveal.origin}</p>}
+        <div className="card__game">
+          <p>{story}</p>
+          <p className="card__best">
+            Best line here was <b>{best}</b> &middot; you scored {score}.
+          </p>
+        </div>
       </div>
 
       <p className="log__cap">
