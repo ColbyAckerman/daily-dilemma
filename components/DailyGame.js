@@ -148,9 +148,12 @@ function tile(me, opp) {
   if (me === 'C' && opp === 'D') return '\u{1F7E8}';
   return '⬛';
 }
-function shareText(puzzle, my, opp, score, headline) {
+function shareText(puzzle, my, opp, headline, beat) {
   const grid = my.map((m, i) => tile(m, opp[i])).join('');
-  return `Daily Dilemma #${puzzle.issue}\n${headline}\n${grid}`;
+  const base =
+    typeof window !== 'undefined' ? window.location.origin : 'https://daily-dilemma-nine.vercel.app';
+  const link = beat == null ? base : `${base}/d/${puzzle.dateStr}?b=${beat}`;
+  return `Daily Dilemma #${puzzle.issue}\n${headline}\n${grid}\n${link}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -367,8 +370,8 @@ export default function DailyGame({ puzzle }) {
   const shownMe = useCountUp(scores.me);
   const shownThem = useCountUp(scores.them);
 
-  async function doShare(headline) {
-    const text = shareText(puzzle, my, them, scores.me, headline);
+  async function doShare(headline, beat) {
+    const text = shareText(puzzle, my, them, headline, beat);
     try {
       if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) await navigator.share({ text });
       else await navigator.clipboard.writeText(text);
@@ -779,7 +782,7 @@ function Result({
       {streak > 1 && <p className="streak">{'\u{1F525}'} {streak}-day streak</p>}
 
       <div className="result__actions">
-        <button className="btn btn--accent" onClick={() => onShare(share)}>
+        <button className="btn btn--accent" onClick={() => onShare(share, beat)}>
           {copied ? 'Copied' : 'Share'}
         </button>
         <button className="btn" onClick={onDone}>
@@ -845,7 +848,7 @@ function Home({ puzzle, today, stats, copied, onShare, onReview }) {
       <p className="home__next">Next puzzle in {countdown}</p>
 
       <div className="result__actions">
-        <button className="btn btn--accent" onClick={() => onShare(shareStr)}>
+        <button className="btn btn--accent" onClick={() => onShare(shareStr, has ? today.beat : undefined)}>
           {copied ? 'Copied' : 'Share'}
         </button>
         <button className="btn" onClick={onReview}>
