@@ -521,7 +521,9 @@ function Arena({ myMove, themMove, rolling, gain, kind, roundN, note }) {
         <div className="arena__seat">
           <span className="arena__who">Them</span>
           {rolling ? (
-            <span className="arena__chip arena__chip--down">?</span>
+            <span className="arena__chip arena__chip--down" aria-label="Their move, face down">
+              &hellip;
+            </span>
           ) : (
             <span
               key={`th-${roundN ?? 'x'}`}

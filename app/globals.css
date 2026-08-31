@@ -367,6 +367,8 @@ b { font-weight: 700; }
   background: var(--bg-3);
   border: 1px solid var(--hair);
   color: var(--ink-3);
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 .arena__chip--flip {
   animation: reveal-flip 0.34s cubic-bezier(0.3, 0.9, 0.3, 1.1);
