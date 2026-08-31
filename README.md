@@ -2,9 +2,9 @@
 
 One [Prisoner's Dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma#The_iterated_prisoner's_dilemma)
 puzzle a day. A hidden opponent plays a fixed strategy; you choose **Cooperate**
-or **Betray** each round, trying to read what it's doing and out-score the field
-before the match ends at a round you can't predict. Same puzzle for everyone,
-Wordle-style. ("Betray" is the classic *defect* move — the label is just plainer.)
+or **Defect** each round (share the pot or steal it), trying to read what it's
+doing and out-score the field before the match ends at a round you can't predict.
+Same puzzle for everyone, Wordle-style.
 
 Live: **https://daily-dilemma-nine.vercel.app**
 
@@ -14,7 +14,7 @@ Live: **https://daily-dilemma-nine.vercel.app**
   faces the same one. It's **hidden** until the game ends.
 - Each round pays out on the standard matrix: `CC 3,3 · DD 1,1 · CD 0,5 · DC 5,0`.
 - The match runs an **unknown number of rounds** (~12–20, geometric random
-  ending) — there's no safe last-round betrayal.
+  ending) — there's no safe last-round defection.
 - **Signal noise is always on** — part of the daily puzzle, not a setting. Every
   move gets a 1-in-10 chance of flipping in transmission (`NOISE_RATE = 0.1`),
   seeded per `(date, round, side)` so the flip pattern is identical for everyone.

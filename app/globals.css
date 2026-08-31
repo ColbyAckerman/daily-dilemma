@@ -433,12 +433,12 @@ b { font-weight: 700; }
 .choices .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-2); }
 .choices .btn:active:not(:disabled) { transform: scale(0.97); }
 .btn__top { display: inline-flex; align-items: center; font-size: var(--fs-lg); }
-.btn__odds {
+.btn__alt {
   font-size: var(--fs-sm);
   font-weight: 500;
-  letter-spacing: 0.03em;
-  text-transform: none;
-  opacity: 0.85;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  opacity: 0.75;
 }
 .choices .btn kbd {
   font: inherit;
