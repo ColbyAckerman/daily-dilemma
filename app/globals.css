@@ -406,35 +406,43 @@ b { font-weight: 700; }
   align-items: center;
   gap: 0.4rem;
   padding: 1.05rem var(--sp-2);
-  background: var(--bg-2);
-  color: var(--ink);
+  border: 1.5px solid transparent;
   box-shadow: var(--shadow-1);
   transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.3, 1.2), background 0.14s ease,
     box-shadow 0.14s ease;
 }
+.choices .btn--c {
+  background: var(--good-soft);
+  border-color: color-mix(in srgb, var(--good) 38%, transparent);
+  color: var(--good);
+}
+.choices .btn--d {
+  background: var(--bad-soft);
+  border-color: color-mix(in srgb, var(--bad) 38%, transparent);
+  color: var(--bad);
+}
 .choices .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-2); }
 .choices .btn:active:not(:disabled) { transform: scale(0.97); }
-.btn__top { display: inline-flex; align-items: center; }
+.btn__top { display: inline-flex; align-items: center; font-size: var(--fs-base); }
 .btn__odds {
   font-size: var(--fs-cap);
   font-weight: 500;
-  letter-spacing: 0.08em;
-  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  opacity: 0.85;
 }
 .choices .btn kbd {
   font: inherit;
-  font-size: 0.8em;
-  border: 1px solid var(--hair);
+  font-size: 0.78em;
+  border: 1px solid currentColor;
   border-radius: var(--r-xs);
   padding: 0.1em 0.55em;
   margin-right: 0.9ch;
-  color: var(--ink-3);
+  opacity: 0.7;
 }
-.choices .btn--c.is-armed { background: var(--good); color: #fff; }
-.choices .btn--d.is-armed { background: var(--bad); color: #fff; }
-.choices .btn.is-armed kbd { border-color: rgba(255, 255, 255, 0.55); color: #fff; }
-.choices .btn.is-armed .btn__odds { color: rgba(255, 255, 255, 0.8); }
-.choices .btn:disabled { opacity: 0.45; cursor: default; }
+.choices .btn--c.is-armed { background: var(--good); border-color: var(--good); color: #fff; }
+.choices .btn--d.is-armed { background: var(--bad); border-color: var(--bad); color: #fff; }
+.choices .btn.is-armed kbd { opacity: 0.85; }
+.choices .btn:disabled { opacity: 0.5; cursor: default; }
 .choices .btn:disabled:not(.is-armed) { transform: none; }
 
 /* ---- reveal FX ------------------------------------ */

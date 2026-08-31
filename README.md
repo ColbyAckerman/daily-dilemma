@@ -2,8 +2,9 @@
 
 One [Prisoner's Dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma#The_iterated_prisoner's_dilemma)
 puzzle a day. A hidden opponent plays a fixed strategy; you choose **Cooperate**
-or **Defect** each round, trying to read what it's doing and beat par before the
-match ends at a round you can't predict. Same puzzle for everyone, Wordle-style.
+or **Betray** each round, trying to read what it's doing and out-score the field
+before the match ends at a round you can't predict. Same puzzle for everyone,
+Wordle-style. ("Betray" is the classic *defect* move — the label is just plainer.)
 
 Live: **https://daily-dilemma-nine.vercel.app**
 

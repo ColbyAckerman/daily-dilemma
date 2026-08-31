@@ -26,6 +26,8 @@ const VERDICT = {
   CD: ['+0', 'sucker'],
   DD: ['+1', 'stale'],
 };
+// the two moves stay 'C' / 'D' internally; players see cooperate / betray
+const GLYPH = { C: 'C', D: 'B' };
 
 function prefersReduced() {
   try {
@@ -313,7 +315,7 @@ export default function DailyGame({ puzzle }) {
         if (k === 'c') {
           e.preventDefault();
           choose('C');
-        } else if (k === 'd') {
+        } else if (k === 'b' || k === 'd') {
           e.preventDefault();
           choose('D');
         }
@@ -423,7 +425,7 @@ export default function DailyGame({ puzzle }) {
               gain={armed && !fx ? null : exchange?.gain}
               kind={exchange?.kind}
               revealKey={fx?.n}
-              note={armed && !fx ? 'reading you…' : exchange?.leadTxt}
+              note={armed && !fx ? 'deciding…' : exchange?.leadTxt}
             />
 
             <Tape my={my} them={them} slips={slips} hideThemId />
@@ -437,7 +439,7 @@ export default function DailyGame({ puzzle }) {
                 <span className="btn__top">
                   <kbd>C</kbd>Cooperate
                 </span>
-                <span className="btn__odds">3 or 0</span>
+                <span className="btn__odds">+3 &middot; or 0 if betrayed</span>
               </button>
               <button
                 className={`btn btn--d${armed === 'D' ? ' is-armed' : ''}`}
@@ -445,9 +447,9 @@ export default function DailyGame({ puzzle }) {
                 disabled={!canPlay}
               >
                 <span className="btn__top">
-                  <kbd>D</kbd>Defect
+                  <kbd>B</kbd>Betray
                 </span>
-                <span className="btn__odds">5 or 1</span>
+                <span className="btn__odds">+5 &middot; or +1 if matched</span>
               </button>
             </div>
           </section>
@@ -518,7 +520,7 @@ function Arena({ myMove, themMove, rolling, gain, kind, revealKey, note }) {
             key={myMove || 'x'}
             className={`arena__chip${myMove ? ` chip--${myMove}` : ' arena__chip--empty'}`}
           >
-            {myMove || ''}
+            {myMove ? GLYPH[myMove] : ''}
           </span>
         </div>
         <span className="arena__vs">vs</span>
@@ -530,7 +532,7 @@ function Arena({ myMove, themMove, rolling, gain, kind, revealKey, note }) {
               rolling ? ' arena__chip--roll' : revealed ? ' arena__chip--pop' : ''
             }`}
           >
-            {them || ''}
+            {them ? GLYPH[them] : ''}
           </span>
         </div>
       </div>
@@ -559,7 +561,7 @@ function Tape({ my, them, slips, hideThemId }) {
               slips.includes(i) ? ' chip--slip' : ''
             }`}
           >
-            {m}
+            {GLYPH[m]}
           </span>
         ))}
       </div>
@@ -572,7 +574,7 @@ function Tape({ my, them, slips, hideThemId }) {
               i === them.length - 1 ? ' chip--flip' : ''
             }`}
           >
-            {m}
+            {GLYPH[m]}
           </span>
         ))}
       </div>
@@ -606,10 +608,10 @@ function Payoffs() {
         {PAYOFFS.map(([a, b, x, y], i) => (
           <tr key={i}>
             <td>
-              <span className={`chip chip--${a}`}>{a}</span>
+              <span className={`chip chip--${a}`}>{GLYPH[a]}</span>
             </td>
             <td>
-              <span className={`chip chip--${b}`}>{b}</span>
+              <span className={`chip chip--${b}`}>{GLYPH[b]}</span>
             </td>
             <td className="pts pts--me">{x}</td>
             <td className="pts">{y}</td>
@@ -625,13 +627,13 @@ function Intro({ onPlay }) {
     <section className="intro">
       <p className="intro__lead">
         Each round, you and today&rsquo;s strategy will choose <b className="c">COOPERATE</b> or{' '}
-        <b className="d">DEFECT</b>
+        <b className="d">BETRAY</b>
       </p>
       <Payoffs />
       <p className="intro__lead">
-        <b className="d">DEFECT</b> a <b className="c">COOPERATOR</b> to <strong>WIN BIG</strong>
+        <b className="d">BETRAY</b> a <b className="c">COOPERATOR</b> to <strong>WIN BIG</strong>
         <br />
-        <b className="d">DEFECT</b> each other and you <strong>BOTH LOSE</strong>
+        <b className="d">BETRAY</b> each other and you <strong>BOTH LOSE</strong>
       </p>
       <p className="intro__lead">The last round comes without warning</p>
       <p className="intro__lead">~ 1 in 10 moves flip in transit</p>
@@ -728,12 +730,12 @@ function Help() {
     <div className="prose">
       <p>
         Each round, you and a hidden strategy secretly choose <strong>Cooperate</strong> or{' '}
-        <strong>Defect</strong>. Every pair of choices pays out:
+        <strong>Betray</strong>. Every pair of choices pays out:
       </p>
       <Payoffs />
       <p>
-        Defecting on a cooperator is the greedy play &mdash; you take 5, they get nothing. But if
-        you both reach for it, you both walk away with 1. Cooperating together isn&rsquo;t the top
+        Betraying a cooperator is the greedy play &mdash; you take 5, they get nothing. But if you
+        both reach for it, you both walk away with 1. Cooperating together isn&rsquo;t the top
         score, it&rsquo;s the best one you can rely on.
       </p>
 
@@ -748,7 +750,7 @@ function Help() {
       <h3>Length</h3>
       <p>
         The match ends on a round you can&rsquo;t predict, usually somewhere from 12 to 20. There
-        is no safe final defection &mdash; you never know if a round is the last.
+        is no safe final betrayal &mdash; you never know if a round is the last.
       </p>
 
       <h3>Noise</h3>
@@ -756,7 +758,7 @@ function Help() {
         Every move has a 1-in-10 chance of flipping on the way out &mdash; yours and the
         opponent&rsquo;s. The pattern is seeded from the date, so it&rsquo;s identical for everyone
         playing that day. It&rsquo;s the condition where forgiving strategies pull ahead of rigid
-        ones: a single stray defection shouldn&rsquo;t start a feud.
+        ones: a single stray betrayal shouldn&rsquo;t start a feud.
       </p>
 
       <h3>The field</h3>
@@ -768,8 +770,8 @@ function Help() {
 
       <h3>Nice or nasty</h3>
       <p style={{ marginBottom: 0 }}>
-        The opponent is <strong>nice</strong> if it never defects first (Axelrod&rsquo;s term),{' '}
-        <strong>nasty</strong> if it will. It&rsquo;s checked by playing it against a pure
+        The opponent is <strong>nice</strong> if it never betrays first (Axelrod&rsquo;s term for
+        it), <strong>nasty</strong> if it will. It&rsquo;s checked by playing it against a pure
         cooperator, not taken on faith.
       </p>
     </div>
