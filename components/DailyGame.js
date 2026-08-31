@@ -581,43 +581,29 @@ function Tape({ my, them, slips, hideThemId }) {
   );
 }
 
-const PAYOFFS = [
-  ['C', 'C', '3', '3'],
-  ['D', 'C', '5', '0'],
-  ['C', 'D', '0', '5'],
-  ['D', 'D', '1', '1'],
+const OUTCOMES = [
+  ['You both cooperate', '3', '3', 'c'],
+  ['You defect, they don’t', '5', '0', 'd'],
+  ['They defect, you don’t', '0', '5', 'd'],
+  ['You both defect', '1', '1', 'd'],
 ];
 
 function Payoffs() {
   return (
-    <table className="payoff">
-      <thead>
-        <tr className="payoff__grp">
-          <th colSpan={2}>Choice</th>
-          <th colSpan={2}>Points</th>
-        </tr>
-        <tr className="payoff__sub">
-          <th>You</th>
-          <th>Them</th>
-          <th>You</th>
-          <th>Them</th>
-        </tr>
-      </thead>
-      <tbody>
-        {PAYOFFS.map(([a, b, x, y], i) => (
-          <tr key={i}>
-            <td>
-              <span className={`chip chip--${a}`}>{GLYPH[a]}</span>
-            </td>
-            <td>
-              <span className={`chip chip--${b}`}>{GLYPH[b]}</span>
-            </td>
-            <td className="pts pts--me">{x}</td>
-            <td className="pts">{y}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="payoff">
+      <div className="payoff__head">
+        <span>Outcome</span>
+        <span>You</span>
+        <span>Them</span>
+      </div>
+      {OUTCOMES.map(([label, x, y, k]) => (
+        <div className="payoff__row" key={label}>
+          <span className={`payoff__case payoff__case--${k}`}>{label}</span>
+          <span className="payoff__n payoff__n--me">{x}</span>
+          <span className="payoff__n">{y}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -625,19 +611,14 @@ function Intro({ onPlay }) {
   return (
     <section className="intro">
       <p className="intro__lead">
-        Each round, you and today&rsquo;s strategy will choose <b className="c">COOPERATE</b> or{' '}
-        <b className="d">DEFECT</b> &mdash; share the pot, or steal it
+        Each round, you and today&rsquo;s strategy each choose &mdash;{' '}
+        <b className="c">cooperate</b> (share the pot) or <b className="d">defect</b> (steal it).
       </p>
       <Payoffs />
       <p className="intro__lead">
-        Both <b className="c">COOPERATE</b> and you each take <strong>3</strong>
-        <br />
-        <b className="d">DEFECT</b> on a <b className="c">COOPERATOR</b> to <strong>WIN BIG</strong>
-        <br />
-        <b className="d">DEFECT</b> on each other and you <strong>BOTH LOSE</strong>
+        The match ends on a round you can&rsquo;t predict, and about 1 in 10 moves flip on the
+        way.
       </p>
-      <p className="intro__lead">The last round comes without warning</p>
-      <p className="intro__lead">~ 1 in 10 moves flip in transit</p>
 
       <button className="btn btn--accent" onClick={onPlay}>
         Play

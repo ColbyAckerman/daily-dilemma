@@ -635,49 +635,44 @@ b { font-weight: 700; }
   color: var(--ink-3);
 }
 .prose h3:first-child { margin-top: 0; }
-/* payoff illustration — moves as chips, points as numbers, your side bold */
+/* payoff — every outcome and its exact split, in plain rows */
 .payoff {
-  border-collapse: collapse;
+  width: 100%;
+  max-width: 19rem;
   margin: var(--sp-5) auto;
 }
-.payoff th {
+.payoff__head,
+.payoff__row {
+  display: grid;
+  grid-template-columns: 1fr 2.25ch 2.25ch;
+  gap: var(--sp-4);
+  align-items: baseline;
+  padding: 0.55rem 0;
+}
+.payoff__head {
+  font-size: var(--fs-cap);
   font-weight: 500;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-3);
-}
-.payoff__grp th {
-  font-size: var(--fs-cap);
-  letter-spacing: 0.13em;
-  padding-bottom: var(--sp-1);
-}
-.payoff__sub th {
-  font-size: var(--fs-cap);
-  letter-spacing: 0.08em;
-  padding: 0 var(--sp-3) var(--sp-2);
+  padding-top: 0;
+  padding-bottom: var(--sp-2);
   border-bottom: 1px solid var(--hair);
 }
-.payoff tbody td {
-  padding: var(--sp-2) var(--sp-3);
-  text-align: center;
-}
-.payoff tbody tr + tr td { border-top: 1px solid var(--hair); }
-.payoff .pts {
-  width: 3ch;
-  font-size: var(--fs-lg);
+.payoff__head span + span { text-align: right; }
+.payoff__row { border-bottom: 1px solid var(--hair); }
+.payoff__row:last-child { border-bottom: 0; }
+.payoff__case { color: var(--ink); font-size: var(--fs-sm); }
+.payoff__case--c { color: var(--good); }
+.payoff__case--d { color: var(--bad); }
+.payoff__n {
+  text-align: right;
+  font-size: var(--fs-base);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--ink-3);
 }
-.payoff .pts--me { color: var(--ink); }
-/* vertical divider between the choice pair and the points pair */
-.payoff__grp th:last-child,
-.payoff__sub th:nth-child(3),
-.payoff tbody td:nth-child(3) {
-  border-left: 1px solid var(--hair);
-  padding-left: var(--sp-4);
-}
-.payoff__sub th:nth-child(2),
-.payoff tbody td:nth-child(2) { padding-right: var(--sp-4); }
+.payoff__n--me { color: var(--ink); }
 
 .stats {
   display: grid;
