@@ -13,10 +13,10 @@ Live: **https://daily-dilemma-nine.vercel.app**
 - **One opponent a day**, drawn deterministically from the UTC date so everyone
   faces the same one. It's **hidden** until the game ends.
 - Each round pays out on the standard matrix: `CC 3,3 · DD 1,1 · CD 0,5 · DC 5,0`.
-- The match runs an **unknown number of rounds** (~12–20, geometric random
+- The match runs an **unknown number of rounds** (~9–15, geometric random
   ending) — there's no safe last-round defection.
 - **Signal noise is always on** — part of the daily puzzle, not a setting. Every
-  move gets a 1-in-10 chance of flipping in transmission (`NOISE_RATE = 0.1`),
+  move gets a 1-in-14 chance of flipping in transmission (`NOISE_RATE = 0.07`),
   seeded per `(date, round, side)` so the flip pattern is identical for everyone.
   This keeps the leaderboard a single fair ranking and is the regime where
   forgiving strategies overtake rigid ones.

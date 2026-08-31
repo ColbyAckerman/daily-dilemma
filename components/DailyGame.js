@@ -116,9 +116,9 @@ function tile(me, opp) {
   if (me === 'C' && opp === 'D') return '\u{1F7E8}';
   return '⬛';
 }
-function shareText(puzzle, my, opp, score, place) {
+function shareText(puzzle, my, opp, score, headline) {
   const grid = my.map((m, i) => tile(m, opp[i])).join('');
-  return `Daily Dilemma #${puzzle.issue}\nScored ${score} · ${place}\n${grid}`;
+  return `Daily Dilemma #${puzzle.issue}\n${headline}\n${grid}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -263,6 +263,7 @@ export default function DailyGame({ puzzle }) {
         them: om,
         gain,
         kind,
+        slipped: pm !== move,
         leadTxt: ld > 0 ? `you lead +${ld}` : ld < 0 ? `you trail ${ld}` : 'dead level',
         n: r,
       });
@@ -334,8 +335,8 @@ export default function DailyGame({ puzzle }) {
   const shownMe = useCountUp(scores.me);
   const shownThem = useCountUp(scores.them);
 
-  async function doShare(place) {
-    const text = shareText(puzzle, my, them, scores.me, place);
+  async function doShare(headline) {
+    const text = shareText(puzzle, my, them, scores.me, headline);
     try {
       if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) await navigator.share({ text });
       else await navigator.clipboard.writeText(text);
@@ -424,6 +425,7 @@ export default function DailyGame({ puzzle }) {
               gain={armed && !fx ? null : exchange?.gain}
               kind={exchange?.kind}
               roundN={exchange?.n}
+              slipped={!!exchange?.slipped}
               note={exchange?.leadTxt}
             />
 
@@ -502,7 +504,7 @@ export default function DailyGame({ puzzle }) {
 // The round arena. Both sides commit at once: your move locks, theirs sits
 // face-down, then flips over. No flicker: nothing about their move is random
 // or picked in response to yours.
-function Arena({ myMove, themMove, rolling, gain, kind, roundN, note }) {
+function Arena({ myMove, themMove, rolling, gain, kind, roundN, slipped, note }) {
   const revealed = !rolling && gain != null;
   return (
     <div className={`arena${revealed ? ` arena--reveal arena--${kind}` : ''}`}>
@@ -515,6 +517,7 @@ function Arena({ myMove, themMove, rolling, gain, kind, roundN, note }) {
           >
             {myMove ? GLYPH[myMove] : ''}
           </span>
+          <span className="arena__slip">{revealed && slipped ? 'move slipped' : ''}</span>
         </div>
         <span className="arena__vs">vs</span>
         <div className="arena__seat">
@@ -533,6 +536,7 @@ function Arena({ myMove, themMove, rolling, gain, kind, roundN, note }) {
               {themMove ? GLYPH[themMove] : ''}
             </span>
           )}
+          <span className="arena__slip" />
         </div>
       </div>
       <div className="arena__foot">
@@ -618,8 +622,8 @@ function Intro({ onPlay }) {
       </p>
       <Payoffs />
       <p className="intro__lead">
-        The match ends on a round you can&rsquo;t predict, and about 1 in 10 moves flip on the
-        way.
+        The match ends on a round you can&rsquo;t predict, and the odd move flips in transit
+        &mdash; yours or theirs.
       </p>
 
       <button className="btn btn--accent" onClick={onPlay}>
@@ -647,8 +651,22 @@ function Result({
     .concat([{ name: 'YOU', score, nice: null, me: true }])
     .sort((a, b) => b.score - a.score || (a.me ? -1 : b.me ? 1 : a.name < b.name ? -1 : 1));
   const rank = rows.findIndex((r) => r.me) + 1;
-  const place = `#${rank} of ${rows.length}`;
-  const shownScore = useCountUp(score, 900, 0);
+  const total = rows.length;
+  const beat = total - rank;
+  const place = `#${rank} of ${total}`;
+  const share = `Beat ${beat} of ${total}`;
+  const topPct = Math.ceil((rank / total) * 100);
+  const tier =
+    beat >= total - 3
+      ? '\u{1F3C6} top of the field'
+      : topPct <= 10
+      ? `\u{1F3C6} top ${topPct}%`
+      : topPct <= 25
+      ? `top ${topPct}%`
+      : rank <= Math.floor(total / 2)
+      ? 'top half'
+      : 'bottom half';
+  const shownBeat = useCountUp(beat, 900, 0);
   const meRef = useRef(null);
   useEffect(() => {
     const t = setTimeout(() => meRef.current?.scrollIntoView({ block: 'center' }), 900);
@@ -662,11 +680,12 @@ function Result({
       </p>
 
       <div className="result__score num">
-        {shownScore}
-        <span className="cap">your score</span>
+        {shownBeat}
+        <span className="cap">of {total} strategies beaten</span>
       </div>
+      <p className="result__tier">{tier}</p>
       <p className="result__sub">
-        vs <b>{reveal.name}</b> &middot; they scored {oppScore}
+        you scored <b>{score}</b> &middot; they scored {oppScore}
       </p>
 
       <div className={`card card--${reveal.nice ? 'nice' : 'nasty'}`}>
@@ -702,7 +721,7 @@ function Result({
 
       {streak > 1 && <p className="streak">{'\u{1F525}'} {streak}-day streak</p>}
 
-      <button className="btn btn--accent" onClick={() => onShare(place)}>
+      <button className="btn btn--accent" onClick={() => onShare(share)}>
         {copied ? 'Copied' : 'Share'}
       </button>
     </section>
