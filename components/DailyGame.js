@@ -581,11 +581,13 @@ function Tape({ my, them, slips, hideThemId }) {
   );
 }
 
+const Co = <b className="c">cooperate</b>;
+const De = <b className="d">defect</b>;
 const OUTCOMES = [
-  ['You both cooperate', '3', '3', 'c'],
-  ['You defect, they don’t', '5', '0', 'd'],
-  ['They defect, you don’t', '0', '5', 'd'],
-  ['You both defect', '1', '1', 'd'],
+  ['cc', <>You both {Co}</>, '3', '3'],
+  ['dc', <>You {De}, they {Co}</>, '5', '0'],
+  ['cd', <>They {De}, you {Co}</>, '0', '5'],
+  ['dd', <>You both {De}</>, '1', '1'],
 ];
 
 function Payoffs() {
@@ -596,9 +598,9 @@ function Payoffs() {
         <span>You</span>
         <span>Them</span>
       </div>
-      {OUTCOMES.map(([label, x, y, k]) => (
-        <div className="payoff__row" key={label}>
-          <span className={`payoff__case payoff__case--${k}`}>{label}</span>
+      {OUTCOMES.map(([key, label, x, y]) => (
+        <div className="payoff__row" key={key}>
+          <span className="payoff__case">{label}</span>
           <span className="payoff__n payoff__n--me">{x}</span>
           <span className="payoff__n">{y}</span>
         </div>

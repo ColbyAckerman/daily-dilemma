@@ -638,14 +638,14 @@ b { font-weight: 700; }
 /* payoff — every outcome and its exact split, in plain rows */
 .payoff {
   width: 100%;
-  max-width: 19rem;
+  max-width: 22rem;
   margin: var(--sp-5) auto;
 }
 .payoff__head,
 .payoff__row {
   display: grid;
-  grid-template-columns: 1fr 2.25ch 2.25ch;
-  gap: var(--sp-4);
+  grid-template-columns: 1fr 2ch 2ch;
+  gap: var(--sp-3);
   align-items: baseline;
   padding: 0.55rem 0;
 }
@@ -663,8 +663,9 @@ b { font-weight: 700; }
 .payoff__row { border-bottom: 1px solid var(--hair); }
 .payoff__row:last-child { border-bottom: 0; }
 .payoff__case { color: var(--ink); font-size: var(--fs-sm); }
-.payoff__case--c { color: var(--good); }
-.payoff__case--d { color: var(--bad); }
+.payoff__case b { font-weight: 600; }
+.payoff__case b.c { color: var(--good); }
+.payoff__case b.d { color: var(--bad); }
 .payoff__n {
   text-align: right;
   font-size: var(--fs-base);
