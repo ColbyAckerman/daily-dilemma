@@ -89,6 +89,20 @@ function writeDay(dateStr, record) {
     localStorage.setItem(HKEY, JSON.stringify(h));
   } catch (e) {}
 }
+function mergeDay(dateStr, patch) {
+  const h = readHistory();
+  const next = { ...(h[dateStr] || {}), ...patch };
+  writeDay(dateStr, next);
+  return next;
+}
+function untilNextPuzzle() {
+  const n = new Date();
+  const next = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1);
+  const ms = Math.max(0, next - n.getTime());
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return `${h}h ${m}m`;
+}
 function shortDate(d) {
   const [, m, day] = d.split('-').map(Number);
   return `${MONTHS[m - 1]} ${day}`;
@@ -119,7 +133,13 @@ function computeStats(history) {
     best = Math.max(best, run);
     prev = d;
   }
-  return { played: days.length, streak, best };
+  const tops = days
+    .map((d) => history[d])
+    .filter((r) => r && r.total > 0)
+    .map((r) => Math.ceil(((r.total - r.beat) / r.total) * 100));
+  const avgTop = tops.length ? Math.round(tops.reduce((a, b) => a + b, 0) / tops.length) : null;
+  const bestTop = tops.length ? Math.min(...tops) : null;
+  return { played: days.length, streak, best, avgTop, bestTop };
 }
 
 function tile(me, opp) {
@@ -204,7 +224,7 @@ export default function DailyGame({ puzzle }) {
           n: mv.length - 1,
         });
       }
-      setPhase(saved.done || mv.length >= puzzle.length ? 'done' : 'play');
+      setPhase(saved.done || mv.length >= puzzle.length ? 'home' : 'play');
     }
   }, [puzzle.dateStr, puzzle.seed, puzzle.length, opp]);
 
@@ -403,7 +423,7 @@ export default function DailyGame({ puzzle }) {
       >
         {phase === 'intro' && <Intro onPlay={start} />}
 
-        {phase !== 'intro' && (
+        {(phase === 'play' || phase === 'done') && (
           <p className="meta">
             {shortDate(puzzle.dateStr)} &middot; no. {puzzle.issue}
           </p>
@@ -481,6 +501,22 @@ export default function DailyGame({ puzzle }) {
             streak={stats.streak}
             copied={copied}
             onShare={doShare}
+            onRecord={(p) => {
+              const next = mergeDay(puzzle.dateStr, p);
+              setHistory((h) => ({ ...h, [puzzle.dateStr]: next }));
+            }}
+            onDone={() => setPhase('home')}
+          />
+        )}
+
+        {phase === 'home' && (
+          <Home
+            puzzle={puzzle}
+            today={history[puzzle.dateStr] || {}}
+            stats={stats}
+            copied={copied}
+            onShare={doShare}
+            onReview={() => setPhase('done')}
           />
         )}
       </main>
@@ -657,6 +693,8 @@ function Result({
   streak,
   copied,
   onShare,
+  onRecord,
+  onDone,
 }) {
   const rows = (raw || [])
     .map((s) => ({ name: s.name, score: s.score, nice: s.nice, me: false }))
@@ -667,7 +705,7 @@ function Result({
   const beat = total - rank;
   const place = `#${rank} of ${total}`;
   const tier = tierLabel(beat, total);
-  const share = `Beat ${beat} of ${total}`;
+  const share = `Beat ${beat} of ${total} · ${tier}`;
   const shownBeat = useCountUp(beat, 900, 0);
   const story = useMemo(
     () => matchStory(puzzle.oppRef, my, them, puzzle.dateStr, NOISE_RATE),
@@ -679,9 +717,10 @@ function Result({
   );
   const meRef = useRef(null);
   useEffect(() => {
+    onRecord?.({ beat, total, best });
     const t = setTimeout(() => meRef.current?.scrollIntoView({ block: 'center' }), 900);
     return () => clearTimeout(t);
-  }, []);
+  }, []); // eslint-disable-line
 
   return (
     <section className="result">
@@ -739,9 +778,80 @@ function Result({
 
       {streak > 1 && <p className="streak">{'\u{1F525}'} {streak}-day streak</p>}
 
-      <button className="btn btn--accent" onClick={() => onShare(share)}>
-        {copied ? 'Copied' : 'Share'}
-      </button>
+      <div className="result__actions">
+        <button className="btn btn--accent" onClick={() => onShare(share)}>
+          {copied ? 'Copied' : 'Share'}
+        </button>
+        <button className="btn" onClick={onDone}>
+          Home
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function Home({ puzzle, today, stats, copied, onShare, onReview }) {
+  const [countdown, setCountdown] = useState(untilNextPuzzle());
+  useEffect(() => {
+    const id = setInterval(() => setCountdown(untilNextPuzzle()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const has = today && today.total > 0;
+  const tier = has ? tierLabel(today.beat, today.total) : '';
+  const shareStr = has ? `Beat ${today.beat} of ${today.total} · ${tier}` : 'Played today';
+
+  return (
+    <section className="home">
+      <p className="meta">
+        {shortDate(puzzle.dateStr)} &middot; no. {puzzle.issue}
+      </p>
+
+      <p className="home__badge">
+        <span className="home__check">✓</span> Solved today
+      </p>
+
+      {has && (
+        <>
+          <div className="result__score num">
+            {today.beat}
+            <span className="cap">of {today.total} beaten</span>
+          </div>
+          <p className="result__tier">{tier}</p>
+        </>
+      )}
+
+      <div className="home__stats">
+        <div>
+          <b>
+            {'\u{1F525}'} {stats.streak}
+          </b>
+          <span>day streak</span>
+        </div>
+        <div>
+          <b>{stats.played}</b>
+          <span>played</span>
+        </div>
+        <div>
+          <b>{stats.avgTop != null ? `top ${stats.avgTop}%` : '—'}</b>
+          <span>average</span>
+        </div>
+        <div>
+          <b>{stats.bestTop != null ? `top ${stats.bestTop}%` : '—'}</b>
+          <span>best</span>
+        </div>
+      </div>
+
+      <p className="home__next">Next puzzle in {countdown}</p>
+
+      <div className="result__actions">
+        <button className="btn btn--accent" onClick={() => onShare(shareStr)}>
+          {copied ? 'Copied' : 'Share'}
+        </button>
+        <button className="btn" onClick={onReview}>
+          Today&rsquo;s breakdown
+        </button>
+      </div>
     </section>
   );
 }
