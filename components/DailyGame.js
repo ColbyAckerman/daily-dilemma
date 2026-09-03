@@ -8,7 +8,6 @@ import {
   revealOpponent,
   transmit,
   buildField,
-  matchStory,
   bestScore,
   NOISE_RATE,
 } from '@/lib/engine';
@@ -421,8 +420,8 @@ export default function DailyGame({ puzzle }) {
 
       <main
         className={`page${phase === 'done' ? '' : ' page--center'}${
-          shaking ? ' page--shake' : ''
-        }`}
+          phase === 'play' ? ' page--play' : ''
+        }${shaking ? ' page--shake' : ''}`}
       >
         {phase === 'intro' && <Intro onPlay={start} />}
 
@@ -433,25 +432,8 @@ export default function DailyGame({ puzzle }) {
         )}
 
         {phase === 'play' && (
-          <section>
-            <div className="score">
-              <p className="cap score__round">Round {Math.min(round + 1, puzzle.length)}</p>
-              <div className="score__row">
-                <span className="score__who">You</span>
-                <span className="score__val num" key={`me${scores.me}`}>
-                  {shownMe}
-                </span>
-              </div>
-              <div className="score__row score__row--them">
-                <span className="score__who">Them</span>
-                <span className="score__val num" key={`th${scores.them}`}>
-                  {shownThem}
-                </span>
-              </div>
-              <p className={`score__lead num${lead > 0 ? ' up' : lead < 0 ? ' down' : ''}`}>
-                {lead > 0 ? `+${lead}` : lead < 0 ? lead : '—'}
-              </p>
-            </div>
+          <section className="play">
+            <p className="cap play__round">Round {Math.min(round + 1, puzzle.length)}</p>
 
             <Arena
               myMove={armed || exchange?.me}
@@ -461,8 +443,19 @@ export default function DailyGame({ puzzle }) {
               kind={exchange?.kind}
               roundN={exchange?.n}
               slipped={!!exchange?.slipped}
-              note={exchange?.leadTxt}
+              myScore={shownMe}
+              themScore={shownThem}
             />
+
+            <p className={`play__lead${lead > 0 ? ' up' : lead < 0 ? ' down' : ''}`}>
+              {round === 0
+                ? ''
+                : lead > 0
+                ? `+${lead} ahead`
+                : lead < 0
+                ? `${-lead} behind`
+                : 'even'}
+            </p>
 
             <Tape my={my} them={them} slips={slips} hideThemId />
 
@@ -555,7 +548,7 @@ export default function DailyGame({ puzzle }) {
 // The round arena. Both sides commit at once: your move locks, theirs sits
 // face-down, then flips over. No flicker: nothing about their move is random
 // or picked in response to yours.
-function Arena({ myMove, themMove, rolling, gain, kind, roundN, slipped, note }) {
+function Arena({ myMove, themMove, rolling, gain, kind, roundN, slipped, myScore, themScore }) {
   const revealed = !rolling && gain != null;
   return (
     <div className={`arena${revealed ? ` arena--reveal arena--${kind}` : ''}`}>
@@ -564,11 +557,14 @@ function Arena({ myMove, themMove, rolling, gain, kind, roundN, slipped, note })
           <span className="arena__who">You</span>
           <span
             key={myMove || 'x'}
-            className={`arena__chip${myMove ? ` chip--${myMove}` : ' arena__chip--empty'}`}
+            className={`arena__chip${myMove ? ` chip--${myMove}` : ' arena__chip--empty'}${
+              myMove && !revealed ? ' arena__chip--lock' : ''
+            }`}
           >
             {myMove ? GLYPH[myMove] : ''}
           </span>
-          <span className="arena__slip">{revealed && slipped ? 'move slipped' : ''}</span>
+          <span className="arena__tot num">{myScore}</span>
+          <span className="arena__slip">{revealed && slipped ? 'slipped' : ''}</span>
         </div>
         <span className="arena__vs">vs</span>
         <div className="arena__seat">
@@ -587,16 +583,15 @@ function Arena({ myMove, themMove, rolling, gain, kind, roundN, slipped, note })
               {themMove ? GLYPH[themMove] : ''}
             </span>
           )}
+          <span className="arena__tot num arena__tot--them">{themScore}</span>
           <span className="arena__slip" />
         </div>
       </div>
       <div className="arena__foot">
-        {revealed ? (
+        {revealed && (
           <span key={`g-${roundN ?? 'x'}`} className="arena__gain">
             {gain}
           </span>
-        ) : (
-          <span className="arena__note">{note || ' '}</span>
         )}
       </div>
     </div>
@@ -732,10 +727,6 @@ function Result({
   const tier = tierLabel(beat, total);
   const share = `Beat ${beat} of ${total} · ${tier}`;
   const shownBeat = useCountUp(beat, 900, 0);
-  const story = useMemo(
-    () => matchStory(puzzle.oppRef, my, them, puzzle.dateStr, NOISE_RATE),
-    [puzzle.oppRef, my, them, puzzle.dateStr]
-  );
   const best = useMemo(
     () => bestScore(puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr, NOISE_RATE),
     [puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr]
@@ -765,14 +756,10 @@ function Result({
         </div>
         <p className="card__fam">{reveal.family}</p>
         <p className="card__blurb">{reveal.blurb}</p>
-        <p className="card__hint">{reveal.familyHint}</p>
         {reveal.origin && <p className="card__src">{reveal.origin}</p>}
-        <div className="card__game">
-          <p>{story}</p>
-          <p className="card__best">
-            Best line here was <b>{best}</b> &middot; you scored {score}.
-          </p>
-        </div>
+        <p className="card__best">
+          Best line here scored <b>{best}</b> &middot; you got <b>{score}</b>.
+        </p>
       </div>
 
       <p className="log__cap">

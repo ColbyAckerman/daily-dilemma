@@ -219,6 +219,10 @@ b { font-weight: 700; }
   flex-direction: column;
   justify-content: center;
 }
+.page--play {
+  justify-content: flex-start;
+  padding-top: var(--sp-5);
+}
 .meta {
   text-align: center;
   font-size: var(--fs-cap);
@@ -226,7 +230,7 @@ b { font-weight: 700; }
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--ink-3);
-  margin: 0 0 var(--sp-6);
+  margin: 0 0 var(--sp-5);
 }
 
 /* ---- intro ------------------------------------------------- */
@@ -269,44 +273,21 @@ b { font-weight: 700; }
 }
 .btn--accent:hover { box-shadow: var(--shadow-2); transform: translateY(-1px); }
 
-/* ---- scoreboard — You over Them, numbers right-aligned --------- */
-.score {
-  width: 9rem;
-  margin: 0 auto var(--sp-5);
-  text-align: center;
-}
-.score__round { margin: 0 0 var(--sp-3); }
-.score__row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-.score__row + .score__row { margin-top: var(--sp-1); }
-.score__who {
-  font-size: var(--fs-cap);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+/* ---- play screen ------------------------------------ */
+.play { text-align: center; }
+.play__round { margin: 0 0 var(--sp-4); }
+.play__lead {
+  min-height: 1.4em;
+  margin: var(--sp-3) 0 var(--sp-5);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-3);
-}
-.score__val {
-  display: inline-block;
-  min-width: 2.5ch;
-  text-align: right;
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  line-height: 1.15;
   font-variant-numeric: tabular-nums;
-  animation: numbump 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.3);
 }
-.score__row--them .score__val { color: var(--ink-3); }
-.score__lead {
-  margin: var(--sp-3) 0 0;
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-}
-.score__lead.up { color: var(--good); }
-.score__lead.down { color: var(--bad); }
+.play__lead.up { color: var(--good); }
+.play__lead.down { color: var(--bad); }
 
 /* ---- move tape --------------------------------------- */
 .tape {
@@ -341,40 +322,49 @@ b { font-weight: 700; }
 .chip--flip { animation: chipin 0.22s cubic-bezier(0.2, 0.8, 0.3, 1.1); }
 .chip--slip { outline: 1.5px dashed currentColor; outline-offset: 1px; }
 
-/* ---- round arena ------------------------------------- */
+/* ---- round arena — the hero of the play screen ------ */
 .arena {
-  max-width: 20rem;
-  margin: 0 auto var(--sp-4);
-  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  max-width: 19rem;
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-4) var(--sp-4);
   border-radius: var(--r);
   background: var(--bg-2);
   box-shadow: var(--shadow-1);
   text-align: center;
   transition: box-shadow 0.25s ease;
 }
-.arena--reveal { box-shadow: var(--shadow-2); }
-.arena--reveal.arena--trust { box-shadow: 0 0 0 1px color-mix(in srgb, var(--good) 45%, transparent), var(--shadow-2); }
-.arena--reveal.arena--sting { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent), var(--shadow-2); }
-.arena--reveal.arena--sucker { box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 45%, transparent), var(--shadow-2); }
+.arena--reveal { box-shadow: var(--shadow-2); animation: arena-pulse 0.42s ease; }
+.arena--reveal.arena--trust { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--good) 55%, transparent), var(--shadow-2); }
+.arena--reveal.arena--sting { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--gold) 55%, transparent), var(--shadow-2); }
+.arena--reveal.arena--sucker { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--bad) 55%, transparent), var(--shadow-2); }
 .arena__row {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  gap: var(--sp-5);
+  gap: var(--sp-6);
 }
 .arena__seat {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--sp-2);
+  min-width: 3.75rem;
 }
 .arena__who {
   font-size: var(--fs-cap);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
+.arena__tot {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.arena__tot--them { color: var(--ink-3); }
 .arena__slip {
   min-height: 1em;
   font-size: var(--fs-cap);
@@ -383,21 +373,21 @@ b { font-weight: 700; }
 }
 .arena__vs {
   align-self: center;
-  margin-top: 1.35rem;
+  margin-top: 1.9rem;
   font-size: var(--fs-cap);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
 .arena__chip {
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3.25rem;
+  height: 3.25rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-sm);
-  font-size: var(--fs-lg);
-  font-weight: 700;
+  border-radius: var(--r);
+  font-size: 1.5rem;
+  font-weight: 800;
 }
 .arena__chip--empty { background: var(--bg-3); border: 1px dashed var(--hair); }
 .arena__chip--down {
@@ -407,6 +397,7 @@ b { font-weight: 700; }
   font-weight: 500;
   letter-spacing: 0.08em;
 }
+.arena__chip--lock { animation: chip-lock 0.24s cubic-bezier(0.2, 0.8, 0.3, 1.3); }
 .arena__chip--flip {
   animation: reveal-flip 0.34s cubic-bezier(0.3, 0.9, 0.3, 1.1);
   backface-visibility: hidden;
@@ -419,9 +410,10 @@ b { font-weight: 700; }
   margin-top: var(--sp-3);
 }
 .arena__gain {
-  font-size: 2.25rem;
-  font-weight: 700;
+  font-size: 2.75rem;
+  font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.02em;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
   animation: gainpop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
@@ -429,7 +421,6 @@ b { font-weight: 700; }
 .arena--trust .arena__gain { color: var(--good); }
 .arena--sting .arena__gain { color: var(--gold); }
 .arena--sucker .arena__gain { color: var(--bad); }
-.arena__note { font-size: var(--fs-sm); color: var(--ink-3); }
 
 .prompt {
   font-size: var(--fs-cap);
@@ -585,7 +576,7 @@ b { font-weight: 700; }
 
 .card {
   border-radius: var(--r);
-  padding: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
   text-align: left;
   margin-bottom: var(--sp-5);
   background: var(--bg-2);
@@ -622,29 +613,20 @@ b { font-weight: 700; }
 .card--nice .tag { color: var(--good); background: var(--good-soft); }
 .card--nasty .tag { color: var(--bad); background: var(--bad-soft); }
 .card__blurb { margin: 0; font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.6; }
-.card__hint {
-  margin: var(--sp-2) 0 0;
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-  line-height: 1.6;
-}
-.card__src {
-  margin: var(--sp-3) 0 0;
-  font-size: var(--fs-cap);
-  color: var(--ink-3);
-}
-.card__game {
-  margin-top: var(--sp-4);
+.card__best {
+  margin: var(--sp-4) 0 0;
   padding-top: var(--sp-3);
   border-top: 1px solid var(--hair);
   font-size: var(--fs-sm);
   color: var(--ink-2);
   line-height: 1.6;
 }
-.card__game p { margin: 0 0 var(--sp-2); }
-.card__game p:last-child { margin-bottom: 0; }
-.card__best { color: var(--ink-3); }
 .card__best b { color: var(--ink); font-weight: 700; }
+.card__src {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-cap);
+  color: var(--ink-3);
+}
 
 /* ---- field leaderboard --------------------------- */
 .log__cap {
@@ -941,6 +923,16 @@ b { font-weight: 700; }
 @keyframes numbump {
   0% { transform: scale(1); }
   35% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+@keyframes arena-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+@keyframes chip-lock {
+  0% { transform: scale(0.82); }
+  60% { transform: scale(1.06); }
   100% { transform: scale(1); }
 }
 @keyframes shake {
