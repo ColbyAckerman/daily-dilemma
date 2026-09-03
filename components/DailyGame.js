@@ -387,7 +387,15 @@ export default function DailyGame({ puzzle }) {
         {(phase === 'play' || phase === 'done') && (
           <p className="meta">
             <span className="meta__no">
-              <span className="meta__dd">DD</span>#{puzzle.issue}
+              <button
+                type="button"
+                className="meta__dd"
+                aria-label="Reload"
+                onClick={() => window.location.reload()}
+              >
+                DD
+              </button>
+              #{puzzle.issue}
             </span>
             <span className="meta__date">{longDate(puzzle.dateStr)}</span>
           </p>

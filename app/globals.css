@@ -241,7 +241,10 @@ b { font-weight: 700; }
   letter-spacing: 0.12em;
   color: var(--ink);
   margin-right: 0.08em;
+  padding: 0;
+  transition: opacity 0.14s ease;
 }
+button.meta__dd:hover { opacity: 0.6; }
 .meta__date {
   font-size: var(--fs-cap);
   font-weight: 500;
