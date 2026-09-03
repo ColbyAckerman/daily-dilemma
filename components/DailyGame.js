@@ -365,10 +365,6 @@ export default function DailyGame({ puzzle }) {
     [puzzle.oppRef, puzzle.length, puzzle.dateStr]
   );
 
-  const lead = scores.me - scores.them;
-  const shownMe = useCountUp(scores.me);
-  const shownThem = useCountUp(scores.them);
-
   async function doShare(headline, beat) {
     const text = shareText(puzzle, my, them, headline, beat);
     try {
@@ -420,8 +416,8 @@ export default function DailyGame({ puzzle }) {
 
       <main
         className={`page${phase === 'done' ? '' : ' page--center'}${
-          phase === 'play' ? ' page--play' : ''
-        }${shaking ? ' page--shake' : ''}`}
+          shaking ? ' page--shake' : ''
+        }`}
       >
         {phase === 'intro' && <Intro onPlay={start} />}
 
@@ -443,21 +439,9 @@ export default function DailyGame({ puzzle }) {
               kind={exchange?.kind}
               roundN={exchange?.n}
               slipped={!!exchange?.slipped}
-              myScore={shownMe}
-              themScore={shownThem}
+              myScore={scores.me}
+              themScore={scores.them}
             />
-
-            <p className={`play__lead${lead > 0 ? ' up' : lead < 0 ? ' down' : ''}`}>
-              {round === 0
-                ? ''
-                : lead > 0
-                ? `+${lead} ahead`
-                : lead < 0
-                ? `${-lead} behind`
-                : 'even'}
-            </p>
-
-            <Tape my={my} them={them} slips={slips} hideThemId />
 
             <div className="choices">
               <button
@@ -465,20 +449,14 @@ export default function DailyGame({ puzzle }) {
                 onClick={() => choose('C')}
                 disabled={!canPlay}
               >
-                <span className="btn__top">
-                  <kbd>C</kbd>Cooperate
-                </span>
-                <span className="btn__alt">share</span>
+                <kbd>C</kbd>Cooperate
               </button>
               <button
                 className={`btn btn--d${armed === 'D' ? ' is-armed' : ''}`}
                 onClick={() => choose('D')}
                 disabled={!canPlay}
               >
-                <span className="btn__top">
-                  <kbd>D</kbd>Defect
-                </span>
-                <span className="btn__alt">steal</span>
+                <kbd>D</kbd>Defect
               </button>
             </div>
           </section>
@@ -557,16 +535,13 @@ function Arena({ myMove, themMove, rolling, gain, kind, roundN, slipped, myScore
           <span className="arena__who">You</span>
           <span
             key={myMove || 'x'}
-            className={`arena__chip${myMove ? ` chip--${myMove}` : ' arena__chip--empty'}${
-              myMove && !revealed ? ' arena__chip--lock' : ''
-            }`}
+            className={`arena__chip${myMove ? ` chip--${myMove}` : ' arena__chip--empty'}`}
           >
             {myMove ? GLYPH[myMove] : ''}
           </span>
           <span className="arena__tot num">{myScore}</span>
           <span className="arena__slip">{revealed && slipped ? 'slipped' : ''}</span>
         </div>
-        <span className="arena__vs">vs</span>
         <div className="arena__seat">
           <span className="arena__who">Them</span>
           {rolling ? (
@@ -667,15 +642,11 @@ function tierWin(tier) {
   return /\u{1F3C6}|of the field/u.test(tier || '');
 }
 
-function Tally({ beat, total, tier, ghost }) {
-  const g = String(ghost == null ? beat : ghost);
+function Tally({ beat, total, tier }) {
   return (
     <div className={`tally${tierWin(tier) ? ' tally--win' : ''}`}>
-      <div className="tally__num num" data-ghost={g}>
-        {beat}
-      </div>
+      <div className="tally__num num">{beat}</div>
       <p className="tally__cap">of {total} beaten</p>
-      <div className="tally__rule" />
       <p className="tally__tier">{tierText(tier)}</p>
     </div>
   );
@@ -685,14 +656,11 @@ function Intro({ onPlay }) {
   return (
     <section className="intro">
       <p className="intro__lead">
-        Each round, you and today&rsquo;s strategy each choose &mdash;{' '}
-        <b className="c">cooperate</b> (share the pot) or <b className="d">defect</b> (steal it).
+        Each round, you and today&rsquo;s hidden strategy both choose{' '}
+        <b className="c">cooperate</b> or <b className="d">defect</b>.
       </p>
       <Payoffs />
-      <p className="intro__lead">
-        The match ends on a round you can&rsquo;t predict, and the odd move flips in transit
-        &mdash; yours or theirs.
-      </p>
+      <p className="intro__lead">The match ends on a round you can&rsquo;t predict.</p>
 
       <button className="btn btn--accent" onClick={onPlay}>
         Play
@@ -731,6 +699,23 @@ function Result({
     () => bestScore(puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr, NOISE_RATE),
     [puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr]
   );
+  const [showAll, setShowAll] = useState(false);
+  const meIdx = rows.findIndex((r) => r.me);
+  const slice = [];
+  {
+    const keep = new Set([0]);
+    for (let d = -3; d <= 3; d++) {
+      const j = meIdx + d;
+      if (j >= 0 && j < rows.length) keep.add(j);
+    }
+    let prev = -1;
+    for (const j of [...keep].sort((a, b) => a - b)) {
+      if (prev >= 0 && j > prev + 1) slice.push({ gap: true, key: `g${j}` });
+      slice.push({ r: rows[j], i: j, key: j });
+      prev = j;
+    }
+  }
+  const shownRows = showAll ? rows.map((r, i) => ({ r, i, key: i })) : slice;
   const meRef = useRef(null);
   useEffect(() => {
     onRecord?.({ beat, total, best });
@@ -740,11 +725,7 @@ function Result({
 
   return (
     <section className="result">
-      <p className="prompt" style={{ textAlign: 'center', marginBottom: 'var(--sp-4)' }}>
-        Match complete
-      </p>
-
-      <Tally beat={shownBeat} total={total} tier={tier} ghost={shownBeat} />
+      <Tally beat={shownBeat} total={total} tier={tier} />
       <p className="result__sub">
         you scored <b>{score}</b> &middot; they scored {oppScore}
       </p>
@@ -763,24 +744,39 @@ function Result({
       </div>
 
       <p className="log__cap">
-        The field vs {reveal.name} &middot; you placed <b>{place}</b>
+        You placed <b>{place}</b> in the field
       </p>
-      <div className="log">
+      <div className={`log${showAll ? ' log--all' : ''}`}>
         <table>
           <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} ref={r.me ? meRef : null} className={r.me ? 'me' : undefined}>
-                <td className="rank">{i + 1}</td>
-                <td className="name">
-                  {!r.me && <i className={`dot dot--${r.nice ? 'nice' : 'nasty'}`} />}
-                  {r.name}
-                </td>
-                <td className="pts">{r.score}</td>
-              </tr>
-            ))}
+            {shownRows.map((v) =>
+              v.gap ? (
+                <tr key={v.key} className="log__gap">
+                  <td colSpan={3}>&middot;&nbsp;&middot;&nbsp;&middot;</td>
+                </tr>
+              ) : (
+                <tr
+                  key={v.key}
+                  ref={v.r.me ? meRef : null}
+                  className={v.r.me ? 'me' : undefined}
+                >
+                  <td className="rank">{v.i + 1}</td>
+                  <td className="name">
+                    {!v.r.me && <i className={`dot dot--${v.r.nice ? 'nice' : 'nasty'}`} />}
+                    {v.r.name}
+                  </td>
+                  <td className="pts">{v.r.score}</td>
+                </tr>
+              )
+            )}
           </tbody>
         </table>
       </div>
+      {!showAll && (
+        <button className="log__more" onClick={() => setShowAll(true)}>
+          Show all {total}
+        </button>
+      )}
 
       <Tape my={my} them={them} slips={slips} />
 
