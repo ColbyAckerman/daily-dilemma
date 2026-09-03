@@ -295,6 +295,49 @@ b { font-weight: 700; }
   padding-bottom: var(--sp-6);
 }
 
+/* ---- running score — top of mind, above the grid ---------- */
+.score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.5rem, 9vw, 3rem);
+  margin: 0 auto var(--sp-6);
+  animation: scorepop 0.42s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.score__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+.score__pts {
+  font-size: clamp(2rem, 11vw, 2.9rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.2s ease;
+}
+.score__side.is-lead .score__pts { color: var(--ink); }
+.score__who {
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.score__side.is-lead .score__who { color: var(--good); }
+.score__vs {
+  width: 1px;
+  align-self: stretch;
+  background: var(--hair);
+}
+@keyframes scorepop {
+  from { transform: scale(0.92); opacity: 0.4; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 /* ---- the board — one grid: play surface, record, shareable result ---
    tiles shrink to fit so the whole history always stays on screen */
 .board { --tile: 2.6rem; --tile-gap: 0.34rem; }
@@ -365,16 +408,6 @@ b { font-weight: 700; }
   font-variant-numeric: tabular-nums;
   animation: gainpop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
-.board__diff {
-  font-size: var(--fs-cap);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-.board__diff.up { color: var(--good); }
-.board__diff.down { color: var(--bad); }
 
 /* on the results screen the board is pure colour squares — the share grid */
 .result .board { --tile: 1.5rem; --tile-gap: 0.24rem; margin-bottom: var(--sp-5); }

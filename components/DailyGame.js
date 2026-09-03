@@ -394,6 +394,7 @@ export default function DailyGame({ puzzle }) {
         {phase === 'play' && (
           <section className="play">
             <div className="play__stage">
+              <Scoreboard me={scores.me} them={scores.them} bump={exchange?.n} />
               <Board
                 my={my}
                 them={them}
@@ -501,7 +502,6 @@ function Board({
   const active = my.length;
   const cols = active + (live ? 1 : 0); // played + the active column
   const idxs = Array.from({ length: Math.max(cols, my.length) }, (_, i) => i);
-  const diff = myScore - themScore;
 
   const tile = (side, i) => {
     const played = i < my.length;
@@ -549,11 +549,25 @@ function Board({
             {gain}
           </span>
         )}
-        {live && my.length > 0 && (
-          <span className={`board__diff${diff > 0 ? ' up' : diff < 0 ? ' down' : ''}`}>
-            {diff === 0 ? 'even' : diff > 0 ? `you +${diff}` : `you ${diff}`}
-          </span>
-        )}
+      </div>
+    </div>
+  );
+}
+
+// Running score, sat right above the grid so it's the first thing you read.
+// Whoever's ahead lights up; the numbers tick on every resolved round.
+function Scoreboard({ me, them, bump }) {
+  const lead = me > them ? 'me' : them > me ? 'them' : null;
+  return (
+    <div className="score" key={`s${bump ?? 'x'}`}>
+      <div className={`score__side${lead === 'me' ? ' is-lead' : ''}`}>
+        <span className="score__pts">{me}</span>
+        <span className="score__who">You</span>
+      </div>
+      <span className="score__vs" aria-hidden="true" />
+      <div className={`score__side${lead === 'them' ? ' is-lead' : ''}`}>
+        <span className="score__pts">{them}</span>
+        <span className="score__who">Them</span>
       </div>
     </div>
   );
