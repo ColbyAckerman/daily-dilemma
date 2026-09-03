@@ -33,10 +33,13 @@ function percentile(beat, total) {
   if (!total) return null;
   return Math.min(99, Math.max(1, Math.round((beat / total) * 100)));
 }
-function ordinal(n) {
+function ordSuffix(n) {
   const t = n % 100;
-  if (t >= 11 && t <= 13) return `${n}th`;
-  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+  if (t >= 11 && t <= 13) return 'th';
+  return ['th', 'st', 'nd', 'rd'][n % 10] || 'th';
+}
+function ordinal(n) {
+  return `${n}${ordSuffix(n)}`;
 }
 function tierLabel(beat, total) {
   const p = percentile(beat, total);
@@ -638,7 +641,10 @@ function Percentile({ pct, tier }) {
         <line className="pctl__mark" x1={mx} y1={markTop} x2={mx} y2={H} />
         <circle className="pctl__dot" cx={mx} cy={my} r="3.5" />
       </svg>
-      <p className="pctl__label">{tierText(tier)}</p>
+      <p className="pctl__label">
+        {pct}
+        <span className="pctl__ord">{ordSuffix(pct)}</span> percentile
+      </p>
     </div>
   );
 }

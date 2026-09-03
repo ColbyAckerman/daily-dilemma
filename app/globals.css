@@ -505,10 +505,16 @@ b { font-weight: 700; }
   margin: 0;
   font-size: clamp(1.6rem, 7.5vw, 2.15rem);
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.15;
   letter-spacing: -0.015em;
   text-transform: uppercase;
   color: var(--ink);
+}
+.pctl__ord {
+  font-size: 0.46em;
+  vertical-align: 0.72em;
+  letter-spacing: 0.03em;
+  margin: 0 0.12em 0 0.04em;
 }
 .pctl--win .pctl__label { color: var(--good); }
 
