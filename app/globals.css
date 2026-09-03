@@ -228,10 +228,9 @@ b { font-weight: 700; }
   text-align: center;
 }
 .meta__no {
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: var(--fs-base);
+  font-weight: 800;
+  letter-spacing: 0.03em;
   color: var(--ink-2);
 }
 .meta__date {
@@ -634,57 +633,12 @@ b { font-weight: 700; }
   margin: 0 0 var(--sp-4);
 }
 
-.result__actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-
-/* ---- home (after you've played) ------------------ */
-.home {
-  max-width: 21rem;
-  margin: 0 auto;
+.result__share { margin-top: var(--sp-2); }
+.result__next {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
   text-align: center;
-  animation: rise 0.3s ease both;
-}
-.home__badge {
-  margin: 0 0 var(--sp-6);
-  font-size: var(--fs-sm);
-  letter-spacing: 0.04em;
-  color: var(--ink-2);
-}
-.home__check {
-  color: var(--good);
-  font-weight: 700;
-  margin-right: 0.4ch;
-}
-.home__stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-4) var(--sp-3);
-  margin: var(--sp-6) 0 var(--sp-5);
-  padding: var(--sp-5) var(--sp-4);
-  border-radius: var(--r);
-  background: var(--bg-2);
-  box-shadow: var(--shadow-1);
-}
-.home__stats div { display: flex; flex-direction: column; gap: 0.2rem; }
-.home__stats b {
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.home__stats span {
-  font-size: var(--fs-cap);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-.home__next {
-  margin: 0 0 var(--sp-6);
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
 }
 
 /* ---- shared-link landing ------------------------- */

@@ -19,12 +19,12 @@ export function generateMetadata({ params, searchParams }) {
   const p = raw != null && raw !== '' ? Math.min(99, Math.max(1, parseInt(raw, 10) || 0)) : null;
   const desc =
     p != null
-      ? `Someone hit the ${ordinal(p)} percentile on Daily Dilemma No. ${issue}. Can you do better?`
+      ? `Someone hit the ${ordinal(p)} percentile on DD#${issue}. Can you do better?`
       : 'One Prisoner’s Dilemma a day. Read the hidden strategy, out-score the field.';
   return {
-    title: `Daily Dilemma No. ${issue}`,
+    title: `DD#${issue}`,
     description: desc,
-    openGraph: { title: `Daily Dilemma No. ${issue}`, description: desc },
+    openGraph: { title: `DD#${issue}`, description: desc },
   };
 }
 

@@ -125,7 +125,7 @@ function shareText(puzzle, my, them, headline, beat) {
   const base =
     typeof window !== 'undefined' ? window.location.origin : 'https://daily-dilemma-nine.vercel.app';
   const link = beat == null ? base : `${base}/d/${puzzle.dateStr}?b=${beat}`;
-  return `Daily Dilemma No. ${puzzle.issue}\n${headline}\n${moveRow(my)}\n${moveRow(them)}\n${link}`;
+  return `DD#${puzzle.issue}\n${headline}\n${moveRow(my)}\n${moveRow(them)}\n${link}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,7 +198,7 @@ export default function DailyGame({ puzzle }) {
           n: mv.length - 1,
         });
       }
-      setPhase(saved.done || mv.length >= puzzle.length ? 'home' : 'play');
+      setPhase(saved.done || mv.length >= puzzle.length ? 'done' : 'play');
     }
   }, [puzzle.dateStr, puzzle.seed, puzzle.length, opp]);
 
@@ -366,7 +366,7 @@ export default function DailyGame({ puzzle }) {
 
         {(phase === 'play' || phase === 'done') && (
           <p className="meta">
-            <span className="meta__no">No.&nbsp;{puzzle.issue}</span>
+            <span className="meta__no">DD#{puzzle.issue}</span>
             <span className="meta__date">{longDate(puzzle.dateStr)}</span>
           </p>
         )}
@@ -424,18 +424,6 @@ export default function DailyGame({ puzzle }) {
               const next = mergeDay(puzzle.dateStr, p);
               setHistory((h) => ({ ...h, [puzzle.dateStr]: next }));
             }}
-            onDone={() => setPhase('home')}
-          />
-        )}
-
-        {phase === 'home' && (
-          <Home
-            puzzle={puzzle}
-            today={history[puzzle.dateStr] || {}}
-            stats={stats}
-            copied={copied}
-            onShare={doShare}
-            onReview={() => setPhase('done')}
           />
         )}
       </main>
@@ -646,8 +634,12 @@ function Result({
   copied,
   onShare,
   onRecord,
-  onDone,
 }) {
+  const [countdown, setCountdown] = useState(untilNextPuzzle());
+  useEffect(() => {
+    const id = setInterval(() => setCountdown(untilNextPuzzle()), 30000);
+    return () => clearInterval(id);
+  }, []);
   const rows = (raw || [])
     .map((s) => ({ name: s.name, score: s.score, nice: s.nice, me: false }))
     .concat([{ name: 'YOU', score, nice: null, me: true }])
@@ -740,73 +732,10 @@ function Result({
 
       {streak > 1 && <p className="streak">{'\u{1F525}'} {streak}-day streak</p>}
 
-      <div className="result__actions">
-        <button className="btn btn--accent" onClick={() => onShare(share, beat)}>
-          {copied ? 'Copied' : 'Share'}
-        </button>
-        <button className="btn" onClick={onDone}>
-          Home
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function Home({ puzzle, today, stats, copied, onShare, onReview }) {
-  const [countdown, setCountdown] = useState(untilNextPuzzle());
-  useEffect(() => {
-    const id = setInterval(() => setCountdown(untilNextPuzzle()), 30000);
-    return () => clearInterval(id);
-  }, []);
-
-  const has = today && today.total > 0;
-  const tier = has ? tierLabel(today.beat, today.total) : '';
-  const shareStr = has ? tierText(tier) : 'Played today';
-
-  return (
-    <section className="home">
-      <p className="meta">
-        <span className="meta__no">No.&nbsp;{puzzle.issue}</span>
-        <span className="meta__date">{longDate(puzzle.dateStr)}</span>
-      </p>
-
-      <p className="home__badge">
-        <span className="home__check">✓</span> Solved today
-      </p>
-
-      {has && <Percentile pct={percentile(today.beat, today.total)} tier={tier} />}
-
-      <div className="home__stats">
-        <div>
-          <b>
-            {'\u{1F525}'} {stats.streak}
-          </b>
-          <span>day streak</span>
-        </div>
-        <div>
-          <b>{stats.played}</b>
-          <span>played</span>
-        </div>
-        <div>
-          <b>{stats.avgPct != null ? ordinal(stats.avgPct) : '—'}</b>
-          <span>avg percentile</span>
-        </div>
-        <div>
-          <b>{stats.bestPct != null ? ordinal(stats.bestPct) : '—'}</b>
-          <span>best</span>
-        </div>
-      </div>
-
-      <p className="home__next">Next puzzle in {countdown}</p>
-
-      <div className="result__actions">
-        <button className="btn btn--accent" onClick={() => onShare(shareStr, has ? today.beat : undefined)}>
-          {copied ? 'Copied' : 'Share'}
-        </button>
-        <button className="btn" onClick={onReview}>
-          Today&rsquo;s breakdown
-        </button>
-      </div>
+      <button className="btn btn--accent result__share" onClick={() => onShare(share, beat)}>
+        {copied ? 'Copied' : 'Share'}
+      </button>
+      <p className="result__next">Next puzzle in {countdown}</p>
     </section>
   );
 }

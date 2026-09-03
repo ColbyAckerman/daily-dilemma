@@ -1,4 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="10" fill="#172321"/>
-  <text x="32" y="34" font-size="34" text-anchor="middle" dominant-baseline="central">&#129309;</text>
+  <rect width="64" height="64" rx="13" fill="#0b0b0c"/>
+  <g fill="#f4f4f5" fill-rule="evenodd">
+    <path d="M5,12 h11 c9,0 15,8 15,20 c0,12 -6,20 -15,20 h-11 z M14,21 h2 c6,0 9,5 9,11 c0,6 -3,11 -9,11 h-2 z"/>
+    <path d="M33,12 h11 c9,0 15,8 15,20 c0,12 -6,20 -15,20 h-11 z M42,21 h2 c6,0 9,5 9,11 c0,6 -3,11 -9,11 h-2 z"/>
+  </g>
 </svg>

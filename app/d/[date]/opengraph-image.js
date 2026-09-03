@@ -30,7 +30,7 @@ export default function Image({ params }) {
       >
         <div style={{ fontSize: 84, fontWeight: 800, letterSpacing: 14 }}>DAILY DILEMMA</div>
         <div style={{ marginTop: 18, fontSize: 34, color: '#9c9ca4', letterSpacing: 4 }}>
-          {`NO. ${issue}`}
+          {`DD#${issue}`}
         </div>
         <div style={{ marginTop: 44, fontSize: 30, color: '#3ecf8e' }}>
           Read the strategy. Out-score the field.
