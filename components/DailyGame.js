@@ -121,6 +121,26 @@ function computeStats(history) {
 function moveRow(moves) {
   return moves.map((m) => (m === 'D' ? '\u{1F7E5}' : '\u{1F7E9}')).join('');
 }
+
+// stable per-browser id so the leaderboard keeps one row per device per day
+function deviceId() {
+  try {
+    let d = localStorage.getItem('dd:device');
+    if (!d) {
+      d =
+        (typeof crypto !== 'undefined' && crypto.randomUUID && crypto.randomUUID()) ||
+        `d${Date.now()}${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem('dd:device', d);
+    }
+    return d;
+  } catch (e) {
+    return `d${Date.now()}`;
+  }
+}
+// the player's *intended* line (undo the noise flips) — what the server re-simulates
+function intendedLine(my, slips) {
+  return my.map((m, i) => (slips.includes(i) ? (m === 'D' ? 'C' : 'D') : m)).join('');
+}
 function shareText(puzzle, my, them, headline, beat) {
   const base =
     typeof window !== 'undefined' ? window.location.origin : 'https://daily-dilemma-nine.vercel.app';
@@ -419,7 +439,12 @@ export default function DailyGame({ puzzle }) {
             oppScore={scores.them}
             streak={stats.streak}
             copied={copied}
+            savedName={history[puzzle.dateStr]?.name}
             onShare={doShare}
+            onName={(name) => {
+              const next = mergeDay(puzzle.dateStr, { name });
+              setHistory((h) => ({ ...h, [puzzle.dateStr]: next }));
+            }}
             onRecord={(p) => {
               const next = mergeDay(puzzle.dateStr, p);
               setHistory((h) => ({ ...h, [puzzle.dateStr]: next }));
@@ -632,7 +657,9 @@ function Result({
   oppScore,
   streak,
   copied,
+  savedName,
   onShare,
+  onName,
   onRecord,
 }) {
   const [countdown, setCountdown] = useState(untilNextPuzzle());
@@ -640,15 +667,74 @@ function Result({
     const id = setInterval(() => setCountdown(untilNextPuzzle()), 30000);
     return () => clearInterval(id);
   }, []);
-  const rows = (raw || [])
-    .map((s) => ({ name: s.name, score: s.score, nice: s.nice, me: false }))
-    .concat([{ name: 'YOU', score, nice: null, me: true }])
-    .sort((a, b) => b.score - a.score || (a.me ? -1 : b.me ? 1 : a.name < b.name ? -1 : 1));
-  const rank = rows.findIndex((r) => r.me) + 1;
-  const total = rows.length;
-  const beat = total - rank;
+
+  // real-player board
+  const [board, setBoard] = useState({ enabled: false, entries: [] });
+  const [myName, setMyName] = useState(savedName || null);
+  const [draft, setDraft] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitErr, setSubmitErr] = useState('');
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/board?date=${puzzle.dateStr}`)
+      .then((r) => r.json())
+      .then((d) => live && setBoard({ enabled: !!d.enabled, entries: d.entries || [] }))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [puzzle.dateStr]);
+
+  async function submitName(e) {
+    e.preventDefault();
+    const name = draft.trim();
+    if (!name || submitting) return;
+    setSubmitting(true);
+    setSubmitErr('');
+    try {
+      const res = await fetch('/api/board', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          date: puzzle.dateStr,
+          name,
+          moves: intendedLine(my, slips),
+          device: deviceId(),
+        }),
+      }).then((r) => r.json());
+      if (res.ok) {
+        setMyName(res.name);
+        onName?.(res.name);
+        setBoard((b) => ({
+          ...b,
+          entries: [
+            ...b.entries.filter((x) => !(x.name === res.name && x.score === res.score)),
+            { name: res.name, score: res.score },
+          ],
+        }));
+      } else {
+        setSubmitErr('Could not add that — try a different name.');
+      }
+    } catch (err) {
+      setSubmitErr('Network hiccup — try again.');
+    }
+    setSubmitting(false);
+  }
+
+  const strat = (raw || []).map((s) => ({ name: s.name, score: s.score, nice: s.nice }));
+  const beat = strat.filter((s) => s.score < score).length;
+  const total = strat.length || 100;
   const tier = tierLabel(beat, total);
   const share = tierText(tier);
+
+  const humans = (board.entries || [])
+    .filter((e) => !(myName && e.name === myName && e.score === score))
+    .map((e) => ({ name: e.name, score: e.score, human: true }));
+  const rows = [
+    ...strat.map((s) => ({ ...s, me: false })),
+    ...humans,
+    { name: myName || 'You', score, me: true, human: true },
+  ].sort((a, b) => b.score - a.score || (a.me ? -1 : b.me ? 1 : a.name < b.name ? -1 : 1));
   const best = useMemo(
     () => bestScore(puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr, NOISE_RATE),
     [puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr]
@@ -697,7 +783,28 @@ function Result({
         </p>
       </div>
 
-      <p className="log__cap">The field</p>
+      <p className="log__cap">
+        The field{board.enabled ? <span> &amp; the players</span> : null}
+      </p>
+
+      {board.enabled && !myName && (
+        <form className="named" onSubmit={submitName}>
+          <input
+            className="named__in"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Pick a name for the board"
+            maxLength={16}
+            autoComplete="off"
+            spellCheck="false"
+          />
+          <button className="btn named__go" disabled={!draft.trim() || submitting}>
+            {submitting ? '…' : 'Add me'}
+          </button>
+        </form>
+      )}
+      {submitErr && <p className="named__err">{submitErr}</p>}
+
       <div className={`log${showAll ? ' log--all' : ''}`}>
         <table>
           <tbody>
@@ -714,7 +821,11 @@ function Result({
                 >
                   <td className="rank">{v.i + 1}</td>
                   <td className="name">
-                    {!v.r.me && <i className={`dot dot--${v.r.nice ? 'nice' : 'nasty'}`} />}
+                    <i
+                      className={`dot dot--${
+                        v.r.me || v.r.human ? 'human' : v.r.nice ? 'nice' : 'nasty'
+                      }`}
+                    />
                     {v.r.name}
                   </td>
                   <td className="pts">{v.r.score}</td>
@@ -726,7 +837,7 @@ function Result({
       </div>
       {!showAll && (
         <button className="log__more" onClick={() => setShowAll(true)}>
-          Show all {total}
+          Show all {rows.length}
         </button>
       )}
 

@@ -624,6 +624,43 @@ b { font-weight: 700; }
 }
 .dot--nice { background: var(--good); }
 .dot--nasty { background: var(--bad); }
+.dot--human { background: var(--ink); border-radius: 50%; }
+.log tr.me td .dot--human { background: var(--bg); }
+
+/* pick-a-name to join the real leaderboard */
+.named {
+  display: flex;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+}
+.named__in {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem var(--sp-3);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+}
+.named__in::placeholder { color: var(--ink-3); }
+.named__in:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--good) 55%, var(--hair));
+}
+.named__go {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 0.75rem 1.1rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.named__go:disabled { opacity: 0.5; }
+.named__err {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--bad);
+}
 
 .streak {
   font-weight: 700;
