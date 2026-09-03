@@ -386,7 +386,9 @@ export default function DailyGame({ puzzle }) {
 
         {(phase === 'play' || phase === 'done') && (
           <p className="meta">
-            <span className="meta__no">DD#{puzzle.issue}</span>
+            <span className="meta__no">
+              <span className="meta__dd">DD</span>#{puzzle.issue}
+            </span>
             <span className="meta__date">{longDate(puzzle.dateStr)}</span>
           </p>
         )}

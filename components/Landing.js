@@ -19,7 +19,7 @@ export default function Landing({ date, beat }) {
     <main className="page page--center">
       <section className="landing">
         <h1 className="landing__title">Daily Dilemma</h1>
-        <p className="landing__no">DD#{issue}</p>
+        <p className="landing__no"><span className="meta__dd">DD</span>#{issue}</p>
 
         {n != null && (
           <p className="landing__brag">
