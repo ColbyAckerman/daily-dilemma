@@ -39,39 +39,6 @@ function tierLabel(beat, total) {
   return total - beat <= Math.floor(total / 2) ? 'top half' : 'bottom half';
 }
 
-function prefersReduced() {
-  try {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch (e) {
-    return false;
-  }
-}
-
-// count a number up to its target with easing
-function useCountUp(target, dur = 520, initial) {
-  const [val, setVal] = useState(initial == null ? target : initial);
-  const raf = useRef(0);
-  useEffect(() => {
-    if (val === target) return undefined;
-    if (prefersReduced()) {
-      setVal(target);
-      return undefined;
-    }
-    const from = val;
-    const delta = target - from;
-    let start = 0;
-    const tick = (ts) => {
-      if (!start) start = ts;
-      const p = Math.min(1, (ts - start) / dur);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setVal(p < 1 ? Math.round(from + delta * eased) : target);
-      if (p < 1) raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
-  }, [target]); // eslint-disable-line
-  return val;
-}
 
 // ---------------------------------------------------------------------------
 function readHistory() {
@@ -141,18 +108,15 @@ function computeStats(history) {
   return { played: days.length, streak, best, avgTop, bestTop };
 }
 
-function tile(me, opp) {
-  if (me === 'C' && opp === 'C') return '\u{1F7E9}';
-  if (me === 'D' && opp === 'C') return '\u{1F7E5}';
-  if (me === 'C' && opp === 'D') return '\u{1F7E8}';
-  return '⬛';
+// green = cooperate, red = defect — one square per round, same as the board
+function moveRow(moves) {
+  return moves.map((m) => (m === 'D' ? '\u{1F7E5}' : '\u{1F7E9}')).join('');
 }
-function shareText(puzzle, my, opp, headline, beat) {
-  const grid = my.map((m, i) => tile(m, opp[i])).join('');
+function shareText(puzzle, my, them, headline, beat) {
   const base =
     typeof window !== 'undefined' ? window.location.origin : 'https://daily-dilemma-nine.vercel.app';
   const link = beat == null ? base : `${base}/d/${puzzle.dateStr}?b=${beat}`;
-  return `Daily Dilemma #${puzzle.issue}\n${headline}\n${grid}\n${link}`;
+  return `Daily Dilemma No. ${puzzle.issue}\n${headline}\n${moveRow(my)}\n${moveRow(them)}\n${link}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,8 +131,7 @@ export default function DailyGame({ puzzle }) {
   const [slips, setSlips] = useState([]); // round indices where the player's move flipped
   const [armed, setArmed] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [nudge, setNudge] = useState(0);
-  const [fx, setFx] = useState(null); // { word, gain, kind, om, n }
+  const [fx, setFx] = useState(null); // { n } — marks that the current round has resolved
   const [exchange, setExchange] = useState(null); // last resolved round, kept on screen
   const [theme, setTheme] = useState(null);
   const [modal, setModal] = useState(null);
@@ -275,14 +238,9 @@ export default function DailyGame({ puzzle }) {
       setThem(nThem);
       if (pm !== move) setSlips((s) => [...s, r]);
 
-      const [gain, kind] = VERDICT[pm + om];
-      setFx({ gain, kind, om, pm, n: r });
-      if (om === 'D') {
-        setNudge((n) => n + 1);
-        buzz(pm === 'C' ? [12, 45, 25] : 18);
-      } else {
-        buzz(pm === 'D' ? [8, 30, 14] : 10);
-      }
+      const [gain] = VERDICT[pm + om];
+      setFx({ n: r });
+      buzz(om === 'D' && pm === 'C' ? [12, 45, 25] : 12);
 
       let myTot = 0;
       let themTot = 0;
@@ -291,16 +249,7 @@ export default function DailyGame({ puzzle }) {
         myTot += x;
         themTot += y;
       }
-      const ld = myTot - themTot;
-      setExchange({
-        me: pm,
-        them: om,
-        gain,
-        kind,
-        slipped: pm !== move,
-        leadTxt: ld > 0 ? `you lead +${ld}` : ld < 0 ? `you trail ${ld}` : 'dead level',
-        n: r,
-      });
+      setExchange({ me: pm, them: om, gain, slipped: pm !== move, n: r });
 
       const finished = nMy.length >= puzzle.length;
       writeDay(puzzle.dateStr, {
@@ -327,15 +276,6 @@ export default function DailyGame({ puzzle }) {
 
   const round = my.length;
   const canPlay = phase === 'play' && !busy && round < puzzle.length;
-
-  // screen shake on a betrayal (opponent defected)
-  const [shaking, setShaking] = useState(false);
-  useEffect(() => {
-    if (!nudge) return;
-    setShaking(true);
-    const t = setTimeout(() => setShaking(false), 460);
-    return () => clearTimeout(t);
-  }, [nudge]);
 
   // keyboard — the terminal takes input
   useEffect(() => {
@@ -388,8 +328,6 @@ export default function DailyGame({ puzzle }) {
 
   return (
     <>
-      {fx && <div className={`fx-wash fx-wash--${fx.om}`} key={`w${fx.n}`} />}
-
       <header className="hdr">
         <div className="hdr__group">
           <button className="ico" aria-label="How to play" onClick={() => setModal('help')}>
@@ -414,11 +352,7 @@ export default function DailyGame({ puzzle }) {
         </div>
       </header>
 
-      <main
-        className={`page${phase === 'done' ? '' : ' page--center'}${
-          shaking ? ' page--shake' : ''
-        }`}
-      >
+      <main className={`page${phase === 'done' ? '' : ' page--center'}`}>
         {phase === 'intro' && <Intro onPlay={start} />}
 
         {(phase === 'play' || phase === 'done') && (
@@ -429,19 +363,20 @@ export default function DailyGame({ puzzle }) {
 
         {phase === 'play' && (
           <section className="play">
-            <p className="cap play__round">Round {Math.min(round + 1, puzzle.length)}</p>
-
-            <Arena
-              myMove={armed || exchange?.me}
-              themMove={exchange?.them}
-              rolling={!!armed && !fx}
-              gain={armed && !fx ? null : exchange?.gain}
-              kind={exchange?.kind}
-              roundN={exchange?.n}
-              slipped={!!exchange?.slipped}
-              myScore={scores.me}
-              themScore={scores.them}
-            />
+            <div className="play__stage">
+              <Board
+                my={my}
+                them={them}
+                slips={slips}
+                armed={armed}
+                rolling={!!armed && !fx}
+                gain={armed && !fx ? null : exchange?.gain}
+                revealedN={exchange?.n}
+                myScore={scores.me}
+                themScore={scores.them}
+                live
+              />
+            </div>
 
             <div className="choices">
               <button
@@ -523,84 +458,83 @@ export default function DailyGame({ puzzle }) {
 }
 
 // ---------------------------------------------------------------------------
-// The round arena. Both sides commit at once: your move locks, theirs sits
-// face-down, then flips over. No flicker: nothing about their move is random
-// or picked in response to yours.
-function Arena({ myMove, themMove, rolling, gain, kind, roundN, slipped, myScore, themScore }) {
-  const revealed = !rolling && gain != null;
-  return (
-    <div className={`arena${revealed ? ` arena--reveal arena--${kind}` : ''}`}>
-      <div className="arena__row">
-        <div className="arena__seat">
-          <span className="arena__who">You</span>
-          <span
-            key={myMove || 'x'}
-            className={`arena__chip${myMove ? ` chip--${myMove}` : ' arena__chip--empty'}`}
-          >
-            {myMove ? GLYPH[myMove] : ''}
+// The board. One grid does everything: play surface, running record, and —
+// coloured in — the shareable result. Two rows (you / them), one column per
+// round. Green = cooperate, red = defect, grey = not played. Both sides
+// commit at once; your tile fills, theirs flips over. Nothing about their
+// move is random or a reaction to yours.
+function Board({
+  my,
+  them,
+  slips,
+  armed,
+  rolling,
+  gain,
+  revealedN,
+  myScore,
+  themScore,
+  live = false,
+}) {
+  const active = my.length;
+  const cols = active + (live ? 1 : 0); // played + the active column
+  const idxs = Array.from({ length: Math.max(cols, my.length) }, (_, i) => i);
+  const diff = myScore - themScore;
+
+  const tile = (side, i) => {
+    const played = i < my.length;
+    if (played) {
+      const mv = side === 'me' ? my[i] : them[i];
+      const flip = i === revealedN;
+      const slip = side === 'me' && slips.includes(i);
+      return (
+        <span
+          key={i}
+          className={`tile tile--${mv}${flip ? ' tile--flip' : ''}${slip ? ' tile--slip' : ''}`}
+        >
+          {GLYPH[mv]}
+        </span>
+      );
+    }
+    if (live && i === active) {
+      if (side === 'me') {
+        return (
+          <span key={i} className={`tile tile--active${armed ? ` tile--${armed}` : ''}`}>
+            {armed ? GLYPH[armed] : ''}
           </span>
-          <span className="arena__tot num">{myScore}</span>
-          <span className="arena__slip">{revealed && slipped ? 'slipped' : ''}</span>
+        );
+      }
+      return (
+        <span key={i} className={`tile tile--active${rolling ? ' tile--down' : ''}`}>
+          {rolling ? '·' : ''}
+        </span>
+      );
+    }
+    return <span key={i} className="tile tile--ghost" />;
+  };
+
+  return (
+    <div className="board">
+      <div className="board__grid">
+        <div className="board__row">
+          <span className="board__label">You</span>
+          {idxs.map((i) => tile('me', i))}
         </div>
-        <div className="arena__seat">
-          <span className="arena__who">Them</span>
-          {rolling ? (
-            <span className="arena__chip arena__chip--down" aria-label="Their move, face down">
-              &hellip;
-            </span>
-          ) : (
-            <span
-              key={`th-${roundN ?? 'x'}`}
-              className={`arena__chip${themMove ? ` chip--${themMove}` : ' arena__chip--empty'}${
-                revealed ? ' arena__chip--flip' : ''
-              }`}
-            >
-              {themMove ? GLYPH[themMove] : ''}
-            </span>
-          )}
-          <span className="arena__tot num arena__tot--them">{themScore}</span>
-          <span className="arena__slip" />
+        <div className="board__row board__row--them">
+          <span className="board__label">Them</span>
+          {idxs.map((i) => tile('them', i))}
         </div>
       </div>
-      <div className="arena__foot">
-        {revealed && (
-          <span key={`g-${roundN ?? 'x'}`} className="arena__gain">
+      <div className="board__foot">
+        {gain != null && (
+          <span key={`g${revealedN}`} className="board__gain">
             {gain}
           </span>
         )}
-      </div>
-    </div>
-  );
-}
-
-function Tape({ my, them, slips, hideThemId }) {
-  return (
-    <div className="tape">
-      <div className="tape__row">
-        <span className="cap">You</span>
-        {my.map((m, i) => (
-          <span
-            key={i}
-            className={`chip chip--${m}${i === my.length - 1 ? ' chip--flip' : ''}${
-              slips.includes(i) ? ' chip--slip' : ''
-            }`}
-          >
-            {GLYPH[m]}
+        {live && my.length > 0 && (
+          <span className={`board__diff${diff > 0 ? ' up' : diff < 0 ? ' down' : ''}`}>
+            {diff === 0 ? 'even' : diff > 0 ? `you +${diff}` : `you ${diff}`}
           </span>
-        ))}
-      </div>
-      <div className="tape__row">
-        <span className="cap">{hideThemId ? '?' : 'Them'}</span>
-        {them.map((m, i) => (
-          <span
-            key={i}
-            className={`chip chip--${m}${hideThemId ? ' chip--muted' : ''}${
-              i === them.length - 1 ? ' chip--flip' : ''
-            }`}
-          >
-            {GLYPH[m]}
-          </span>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -694,7 +628,6 @@ function Result({
   const place = `#${rank} of ${total}`;
   const tier = tierLabel(beat, total);
   const share = `Beat ${beat} of ${total} · ${tier}`;
-  const shownBeat = useCountUp(beat, 900, 0);
   const best = useMemo(
     () => bestScore(puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr, NOISE_RATE),
     [puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr]
@@ -725,9 +658,11 @@ function Result({
 
   return (
     <section className="result">
-      <Tally beat={shownBeat} total={total} tier={tier} />
-      <p className="result__sub">
-        you scored <b>{score}</b> &middot; they scored {oppScore}
+      <Board my={my} them={them} slips={slips} myScore={score} themScore={oppScore} />
+
+      <p className="result__line">
+        <b className="num">{beat}</b> of {total} beaten
+        {tier ? <span className="result__tier">{tierText(tier)}</span> : null}
       </p>
 
       <div className={`card card--${reveal.nice ? 'nice' : 'nasty'}`}>
@@ -777,8 +712,6 @@ function Result({
           Show all {total}
         </button>
       )}
-
-      <Tape my={my} them={them} slips={slips} />
 
       {streak > 1 && <p className="streak">{'\u{1F525}'} {streak}-day streak</p>}
 

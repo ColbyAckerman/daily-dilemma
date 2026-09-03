@@ -269,130 +269,108 @@ b { font-weight: 700; }
 }
 .btn--accent:hover { box-shadow: var(--shadow-2); transform: translateY(-1px); }
 
-/* ---- play screen ------------------------------------ */
-.play { text-align: center; }
-.play__round { margin: 0 0 var(--sp-4); }
-
-/* ---- move tape --------------------------------------- */
-.tape {
-  padding: var(--sp-3) var(--sp-4);
-  border-radius: var(--r);
-  margin-bottom: var(--sp-4);
-  overflow-x: auto;
-  background: var(--bg-2);
-  box-shadow: var(--shadow-1);
-}
-.tape__row { display: flex; align-items: center; gap: 0.3rem; }
-.tape__row + .tape__row { margin-top: 0.3rem; }
-.tape__row .cap {
-  flex: 0 0 3ch;
-  text-align: right;
-  padding-right: var(--sp-2);
-}
-.chip {
-  flex: 0 0 auto;
-  width: 1.375rem;
-  height: 1.375rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-xs);
-  font-size: 0.625rem;
-  font-weight: 700;
-}
-.chip--C { background: var(--good); color: #fff; }
-.chip--D { background: var(--bad); color: #fff; }
-.chip--muted { opacity: 0.4; }
-.chip--flip { animation: chipin 0.22s cubic-bezier(0.2, 0.8, 0.3, 1.1); }
-.chip--slip { outline: 1.5px dashed currentColor; outline-offset: 1px; }
-
-/* ---- round arena — the hero of the play screen ------ */
-.arena {
-  max-width: 19rem;
-  margin: 0 auto var(--sp-5);
-  padding: var(--sp-4) var(--sp-4) var(--sp-3);
-  border-radius: var(--r);
-  background: var(--bg-2);
-  box-shadow: var(--shadow-1);
+/* ---- play screen — the board of past moves is the whole thing --- */
+.play {
   text-align: center;
-  transition: box-shadow 0.25s ease;
-}
-.arena--reveal { box-shadow: var(--shadow-2); }
-.arena__row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: var(--sp-6);
-}
-.arena__seat {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--sp-2);
-  min-width: 3.75rem;
+  min-height: calc(100dvh - 9rem);
 }
-.arena__who {
+.play__stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: var(--sp-6);
+}
+
+/* ---- the board — one grid: play surface, record, shareable result ---
+   tiles shrink to fit so the whole history always stays on screen */
+.board { --tile: 2.6rem; --tile-gap: 0.34rem; }
+.board__grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tile-gap);
+  width: 100%;
+  max-width: 24rem;
+  margin: 0 auto;
+}
+.board__row {
+  display: flex;
+  align-items: center;
+  gap: var(--tile-gap);
+}
+.board__label {
+  flex: 0 0 3rem;
+  text-align: right;
+  padding-right: var(--sp-2);
   font-size: var(--fs-cap);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
-.arena__tot {
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-}
-.arena__tot--them { color: var(--ink-3); }
-.arena__slip {
-  min-height: 1em;
-  font-size: var(--fs-cap);
-  letter-spacing: 0.02em;
-  color: var(--bad);
-}
-.arena__chip {
-  width: 3.25rem;
-  height: 3.25rem;
+.tile {
+  flex: 0 1 var(--tile);
+  min-width: 0;
+  aspect-ratio: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r);
-  font-size: 1.5rem;
+  border-radius: var(--r-xs);
+  font-size: 0.8rem;
   font-weight: 800;
-}
-.arena__chip--empty { background: var(--bg-3); border: 1px dashed var(--hair); }
-.arena__chip--down {
+  color: #fff;
   background: var(--bg-3);
-  border: 1px solid var(--hair);
-  color: var(--ink-3);
-  font-weight: 500;
-  letter-spacing: 0.08em;
 }
-.arena__chip--flip {
+.tile--C { background: var(--good); }
+.tile--D { background: var(--bad); }
+.tile--ghost { background: var(--bg-3); opacity: 0.35; }
+.tile--active {
+  color: var(--ink-3);
+  box-shadow: inset 0 0 0 2px var(--ink-3);
+}
+.tile--active.tile--C,
+.tile--active.tile--D { box-shadow: none; color: #fff; }
+.tile--down { color: var(--ink-3); font-weight: 600; }
+.tile--slip { box-shadow: inset 0 0 0 2px var(--bg); }
+.tile--flip {
   animation: reveal-flip 0.34s cubic-bezier(0.3, 0.9, 0.3, 1.1);
   backface-visibility: hidden;
 }
-.arena__foot {
-  min-height: 2.5rem;
+.board__foot {
+  min-height: 3rem;
+  margin-top: var(--sp-3);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin-top: var(--sp-2);
+  gap: 0.15rem;
 }
-.arena__gain {
-  font-size: 2.5rem;
+.board__gain {
+  font-size: 1.5rem;
   font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.02em;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
   animation: gainpop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
-.arena--trust .arena__gain { color: var(--good); }
-.arena--sting .arena__gain { color: var(--gold); }
-.arena--sucker .arena__gain { color: var(--bad); }
+.board__diff {
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.board__diff.up { color: var(--good); }
+.board__diff.down { color: var(--bad); }
+
+/* on the results screen the board is pure colour squares — the share grid */
+.result .board { --tile: 1.5rem; --tile-gap: 0.24rem; margin-bottom: var(--sp-5); }
+.result .board__grid { max-width: 20rem; }
+.result .tile { font-size: 0; }
+.result .board__label { flex-basis: 3rem; font-size: 0.625rem; }
+.result .board__foot { display: none; }
 
 .prompt {
   font-size: var(--fs-cap);
@@ -449,27 +427,29 @@ b { font-weight: 700; }
 .choices .btn:disabled { opacity: 0.5; cursor: default; }
 .choices .btn:disabled:not(.is-armed) { transform: none; }
 
-/* ---- reveal FX ------------------------------------ */
-.fx-wash {
-  position: fixed;
-  inset: 0;
-  z-index: 24;
-  pointer-events: none;
-  opacity: 0;
-  animation: flash 0.62s ease-out;
-}
-.fx-wash--C {
-  background: radial-gradient(120% 78% at 50% 50%, transparent 44%,
-    color-mix(in srgb, var(--good) 22%, transparent) 100%);
-  box-shadow: inset 0 0 150px 10px color-mix(in srgb, var(--good) 46%, transparent);
-}
-.fx-wash--D {
-  background: radial-gradient(120% 78% at 50% 50%, transparent 38%,
-    color-mix(in srgb, var(--bad) 32%, transparent) 100%);
-  box-shadow: inset 0 0 170px 14px color-mix(in srgb, var(--bad) 58%, transparent);
-}
 /* ---- result -------------------------------------- */
 .result { text-align: center; animation: rise 0.3s ease both; }
+.result__line {
+  margin: 0 0 var(--sp-6);
+  font-size: var(--fs-base);
+  color: var(--ink-3);
+}
+.result__line .num {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.3ch;
+}
+.result__line .result__tier {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-cap);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
 
 /* tally — the finish, carried entirely by type */
 .tally {
@@ -858,12 +838,6 @@ b { font-weight: 700; }
 
 /* ---- motion ------------------------------------ */
 @keyframes rise { from { opacity: 0; transform: translateY(0.4rem); } }
-@keyframes chipin { from { opacity: 0; transform: scale(0.5); } }
-@keyframes flash {
-  0% { opacity: 0; }
-  12% { opacity: 1; }
-  100% { opacity: 0; }
-}
 @keyframes reveal-flip {
   0% { opacity: 0.4; transform: rotateY(-72deg) scale(0.92); }
   55% { opacity: 1; transform: rotateY(0) scale(1.08); }
@@ -874,17 +848,7 @@ b { font-weight: 700; }
   55% { opacity: 1; transform: scale(1.16) translateY(0); }
   100% { opacity: 1; transform: scale(1); }
 }
-@keyframes shake {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  15% { transform: translate3d(-7px, 1px, 0); }
-  30% { transform: translate3d(6px, -1px, 0); }
-  45% { transform: translate3d(-5px, 1px, 0); }
-  60% { transform: translate3d(4px, 0, 0); }
-  75% { transform: translate3d(-2px, 0, 0); }
-}
-.page--shake { animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
-  .fx-wash { display: none; }
 }
