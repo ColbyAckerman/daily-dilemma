@@ -375,9 +375,6 @@ export default function DailyGame({ puzzle }) {
           Daily Dilemma
         </button>
         <div className="hdr__group">
-          <button className="ico" aria-label="Stats" onClick={() => setModal('stats')}>
-            <StatsIcon />
-          </button>
           <button className="ico" aria-label="Theme" onClick={setThemeMode} suppressHydrationWarning>
             {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
           </button>
@@ -441,7 +438,7 @@ export default function DailyGame({ puzzle }) {
             slips={slips}
             score={scores.me}
             oppScore={scores.them}
-            streak={stats.streak}
+            stats={stats}
             copied={copied}
             savedName={history[puzzle.dateStr]?.name}
             onShare={doShare}
@@ -460,24 +457,6 @@ export default function DailyGame({ puzzle }) {
       {modal === 'help' && (
         <Modal title="How to play" onClose={() => setModal(null)}>
           <Help />
-        </Modal>
-      )}
-      {modal === 'stats' && (
-        <Modal title="Your record" onClose={() => setModal(null)}>
-          <div className="stats">
-            <div>
-              <b className="num">{stats.played}</b>
-              <span>Played</span>
-            </div>
-            <div>
-              <b className="num">{stats.streak}</b>
-              <span>Streak</span>
-            </div>
-            <div>
-              <b className="num">{stats.best}</b>
-              <span>Best</span>
-            </div>
-          </div>
         </Modal>
       )}
     </>
@@ -642,8 +621,11 @@ function Percentile({ pct, tier }) {
         <circle className="pctl__dot" cx={mx} cy={my} r="3.5" />
       </svg>
       <p className="pctl__label">
-        {pct}
-        <span className="pctl__ord">{ordSuffix(pct)}</span> percentile
+        <span className="pctl__rank">
+          {pct}
+          <span className="pctl__ord">{ordSuffix(pct)}</span>
+        </span>
+        <span className="pctl__word">percentile</span>
       </p>
     </div>
   );
@@ -675,7 +657,7 @@ function Result({
   slips,
   score,
   oppScore,
-  streak,
+  stats,
   copied,
   savedName,
   onShare,
@@ -861,7 +843,22 @@ function Result({
         </button>
       )}
 
-      {streak > 1 && <p className="streak">{'\u{1F525}'} {streak}-day streak</p>}
+      <div className="record">
+        <div>
+          <b>{stats?.played ?? 1}</b>
+          <span>Played</span>
+        </div>
+        <div>
+          <b>{stats?.streak ?? 1}{(stats?.streak ?? 0) > 1 ? ` \u{1F525}` : ''}</b>
+          <span>Day streak</span>
+        </div>
+        {stats?.bestPct != null && (
+          <div>
+            <b>{ordinal(stats.bestPct)}</b>
+            <span>Best finish</span>
+          </div>
+        )}
+      </div>
 
       <button className="btn btn--accent result__share" onClick={() => onShare(share, beat)}>
         {copied ? 'Copied' : 'Share'}
@@ -917,11 +914,6 @@ const HelpIcon = () => (
     <circle cx="12" cy="12" r="9" />
     <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1.5 1-1.5 2.2" />
     <path d="M12 17.5v.01" />
-  </svg>
-);
-const StatsIcon = () => (
-  <svg viewBox="0 0 24 24">
-    <path d="M5 20V11M12 20V5M19 20v-6" />
   </svg>
 );
 const MoonIcon = () => (
