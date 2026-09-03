@@ -183,7 +183,7 @@ export default function DailyGame({ puzzle }) {
     setHistory(h);
     const saved = h[puzzle.dateStr];
 
-    const rate = NOISE_RATE; // signal noise is part of the daily puzzle for everyone
+    const rate = NOISE_RATE; // signal noise — off for now (NOISE_RATE = 0); plumbing kept
 
     const rng = mulberry32(hashStr(puzzle.seed));
     rngRef.current = rng;
@@ -869,50 +869,37 @@ function Help() {
   return (
     <div className="prose">
       <p>
-        Each round, you and a hidden strategy secretly choose <strong>Cooperate</strong> (share)
-        or <strong>Defect</strong> (steal). Every pair of choices pays out:
+        Each round, you and a hidden strategy secretly choose <strong>Cooperate</strong> or{' '}
+        <strong>Defect</strong>. Every pair of choices pays out:
       </p>
       <Payoffs />
       <p>
         Defecting on a cooperator is the greedy play &mdash; you take 5, they get nothing. But if
-        you both reach for it, you both walk away with 1. Cooperating together isn&rsquo;t the top
-        score, it&rsquo;s the best one you can rely on.
+        you both reach for it, you both walk away with 1. Try to end with the most points.
       </p>
 
       <h3>The opponent</h3>
       <p>
-        One strategy a day, fixed by the date, so everyone faces the same one. It&rsquo;s hidden
-        until the match ends, then revealed with its name and where it comes from. The pool mixes
-        classic tournament strategies with procedurally built ones, and the day&rsquo;s pick
-        won&rsquo;t have appeared in about a month.
+        A new pre-determined strategy each day, the same one for everyone. Figure it out as you go.
+        It&rsquo;s revealed with its name once the match ends.
       </p>
 
       <h3>Length</h3>
       <p>
-        The match ends on a round you can&rsquo;t predict &mdash; no announced number, no warning.
-        There is no safe final defection: you never know which round is the last.
-      </p>
-
-      <h3>Noise</h3>
-      <p>
-        Every move has roughly a 1-in-14 chance of flipping on the way out &mdash; yours and the
-        opponent&rsquo;s. The pattern is seeded from the date, so it&rsquo;s identical for everyone
-        playing that day. It&rsquo;s the condition where forgiving strategies pull ahead of rigid
-        ones: a single stray defection shouldn&rsquo;t start a feud.
+        The match ends after a set but secret number of rounds. It changes each day, and there
+        is no warning &mdash; so there is no safe last defection.
       </p>
 
       <h3>The field</h3>
       <p>
-        When it&rsquo;s over, a fixed field of 100 strategies &mdash; the named historical roster
-        plus a stable cast of generated ones &mdash; is scored against your exact opponent under
-        the same rounds and the same noise. Where your score lands among them is your placement.
+        When it&rsquo;s over, a fixed field of 100 strategies is scored against your exact opponent
+        over the same rounds. Where your score lands among them is your placement.
       </p>
 
       <h3>Nice or nasty</h3>
       <p style={{ marginBottom: 0 }}>
-        The opponent is <strong>nice</strong> if it never defects first (Axelrod&rsquo;s term for
-        it), <strong>nasty</strong> if it will. It&rsquo;s checked by playing it against a pure
-        cooperator, not taken on faith.
+        The opponent is <strong>nice</strong> if it never defects first, <strong>nasty</strong> if
+        it will.
       </p>
     </div>
   );
