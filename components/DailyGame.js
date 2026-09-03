@@ -15,7 +15,6 @@ import { resolveOpponent } from '@/lib/opponents';
 import Modal from './Modal';
 
 const HKEY = 'dd:history';
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const HOLD_MS = 340; // brief face-down beat before the flip
 const REVEAL_MS = 780;
 const FX_MS = 1150;
@@ -29,14 +28,20 @@ const VERDICT = {
 };
 const GLYPH = { C: 'C', D: 'D' };
 
-// how a finish reads: 🏆 top of the field / 🏆 top X% / top X% / top half / bottom half
+// your percentile in the field: you outscored this % of the 100 strategies
+function percentile(beat, total) {
+  if (!total) return null;
+  return Math.min(99, Math.max(1, Math.round((beat / total) * 100)));
+}
+function ordinal(n) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+}
 function tierLabel(beat, total) {
-  if (!total) return '';
-  const topPct = Math.ceil(((total - beat) / total) * 100);
-  if (beat >= total - 3) return '\u{1F3C6} top of the field';
-  if (topPct <= 10) return `\u{1F3C6} top ${topPct}%`;
-  if (topPct <= 25) return `top ${topPct}%`;
-  return total - beat <= Math.floor(total / 2) ? 'top half' : 'bottom half';
+  const p = percentile(beat, total);
+  if (p == null) return '';
+  return `${p >= 90 ? '\u{1F3C6} ' : ''}${ordinal(p)} percentile`;
 }
 
 
@@ -69,9 +74,13 @@ function untilNextPuzzle() {
   const m = Math.floor((ms % 3600000) / 60000);
   return `${h}h ${m}m`;
 }
-function shortDate(d) {
+const MONTHS_LONG = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+function longDate(d) {
   const [, m, day] = d.split('-').map(Number);
-  return `${MONTHS[m - 1]} ${day}`;
+  return `${MONTHS_LONG[m - 1]} ${day}`;
 }
 function buzz(p) {
   try {
@@ -99,13 +108,13 @@ function computeStats(history) {
     best = Math.max(best, run);
     prev = d;
   }
-  const tops = days
+  const pcts = days
     .map((d) => history[d])
     .filter((r) => r && r.total > 0)
-    .map((r) => Math.ceil(((r.total - r.beat) / r.total) * 100));
-  const avgTop = tops.length ? Math.round(tops.reduce((a, b) => a + b, 0) / tops.length) : null;
-  const bestTop = tops.length ? Math.min(...tops) : null;
-  return { played: days.length, streak, best, avgTop, bestTop };
+    .map((r) => Math.round((r.beat / r.total) * 100));
+  const avgPct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : null;
+  const bestPct = pcts.length ? Math.max(...pcts) : null;
+  return { played: days.length, streak, best, avgPct, bestPct };
 }
 
 // green = cooperate, red = defect — one square per round, same as the board
@@ -357,7 +366,8 @@ export default function DailyGame({ puzzle }) {
 
         {(phase === 'play' || phase === 'done') && (
           <p className="meta">
-            {shortDate(puzzle.dateStr)} &middot; no. {puzzle.issue}
+            <span className="meta__no">No.&nbsp;{puzzle.issue}</span>
+            <span className="meta__date">{longDate(puzzle.dateStr)}</span>
           </p>
         )}
 
@@ -503,11 +513,7 @@ function Board({
           </span>
         );
       }
-      return (
-        <span key={i} className={`tile tile--active${rolling ? ' tile--down' : ''}`}>
-          {rolling ? '·' : ''}
-        </span>
-      );
+      return <span key={i} className={`tile tile--active${rolling ? ' tile--wait' : ''}`} />;
     }
     return <span key={i} className="tile tile--ghost" />;
   };
@@ -573,15 +579,39 @@ function tierText(tier) {
   return (tier || '').replace('\u{1F3C6} ', '');
 }
 function tierWin(tier) {
-  return /\u{1F3C6}|of the field/u.test(tier || '');
+  return /\u{1F3C6}/u.test(tier || '');
 }
 
-function Tally({ beat, total, tier }) {
+// your finish, as a percentile marked on the field's bell curve
+function Percentile({ pct, tier }) {
+  if (pct == null) return null;
+  const W = 240;
+  const H = 58;
+  const MID = W / 2;
+  const SIG = W / 5.4;
+  const g = (x) => Math.exp(-((x - MID) ** 2) / (2 * SIG * SIG)) * (H - 5);
+  const pts = [];
+  for (let x = 0; x <= W; x += 4) pts.push(`${x},${(H - g(x)).toFixed(1)}`);
+  const line = `M ${pts.join(' L ')}`;
+  const area = `M 0,${H} L ${pts.join(' L ')} L ${W},${H} Z`;
+  const mx = Math.min(W - 1, Math.max(1, (pct / 100) * W));
+  const my = H - g(mx);
+  const markTop = Math.min(my - 6, H - 26);
+  const beatPts = [];
+  for (let x = 0; x <= mx; x += 4) beatPts.push(`${x},${(H - g(x)).toFixed(1)}`);
+  beatPts.push(`${mx.toFixed(1)},${my.toFixed(1)}`);
+  const beat = `M 0,${H} L ${beatPts.join(' L ')} L ${mx.toFixed(1)},${H} Z`;
+  const win = tierWin(tier);
   return (
-    <div className={`tally${tierWin(tier) ? ' tally--win' : ''}`}>
-      <div className="tally__num num">{beat}</div>
-      <p className="tally__cap">of {total} beaten</p>
-      <p className="tally__tier">{tierText(tier)}</p>
+    <div className={`pctl${win ? ' pctl--win' : ''}`}>
+      <svg viewBox={`0 0 ${W} ${H + 2}`} className="pctl__chart" aria-hidden="true">
+        <path className="pctl__area" d={area} />
+        <path className="pctl__beat" d={beat} />
+        <path className="pctl__line" d={line} />
+        <line className="pctl__mark" x1={mx} y1={markTop} x2={mx} y2={H} />
+        <circle className="pctl__dot" cx={mx} cy={my} r="3.5" />
+      </svg>
+      <p className="pctl__label">{tierText(tier)}</p>
     </div>
   );
 }
@@ -625,9 +655,8 @@ function Result({
   const rank = rows.findIndex((r) => r.me) + 1;
   const total = rows.length;
   const beat = total - rank;
-  const place = `#${rank} of ${total}`;
   const tier = tierLabel(beat, total);
-  const share = `Beat ${beat} of ${total} · ${tier}`;
+  const share = tierText(tier);
   const best = useMemo(
     () => bestScore(puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr, NOISE_RATE),
     [puzzle.oppRef, puzzle.length, puzzle.seed, puzzle.dateStr]
@@ -643,7 +672,7 @@ function Result({
     }
     let prev = -1;
     for (const j of [...keep].sort((a, b) => a - b)) {
-      if (prev >= 0 && j > prev + 1) slice.push({ gap: true, key: `g${j}` });
+      if (prev >= 0 && j > prev + 1) slice.push({ gap: j - prev - 1, key: `g${j}` });
       slice.push({ r: rows[j], i: j, key: j });
       prev = j;
     }
@@ -660,10 +689,7 @@ function Result({
     <section className="result">
       <Board my={my} them={them} slips={slips} myScore={score} themScore={oppScore} />
 
-      <p className="result__line">
-        <b className="num">{beat}</b> of {total} beaten
-        {tier ? <span className="result__tier">{tierText(tier)}</span> : null}
-      </p>
+      <Percentile pct={percentile(beat, total)} tier={tier} />
 
       <div className={`card card--${reveal.nice ? 'nice' : 'nasty'}`}>
         <div className="card__head">
@@ -674,20 +700,19 @@ function Result({
         <p className="card__blurb">{reveal.blurb}</p>
         {reveal.origin && <p className="card__src">{reveal.origin}</p>}
         <p className="card__best">
-          Best line here scored <b>{best}</b> &middot; you got <b>{score}</b>.
+          You scored <b>{score}</b>. The best any line could do against it was{' '}
+          <b>{best}</b>.
         </p>
       </div>
 
-      <p className="log__cap">
-        You placed <b>{place}</b> in the field
-      </p>
+      <p className="log__cap">The field</p>
       <div className={`log${showAll ? ' log--all' : ''}`}>
         <table>
           <tbody>
             {shownRows.map((v) =>
               v.gap ? (
                 <tr key={v.key} className="log__gap">
-                  <td colSpan={3}>&middot;&nbsp;&middot;&nbsp;&middot;</td>
+                  <td colSpan={3}>{v.gap} more between</td>
                 </tr>
               ) : (
                 <tr
@@ -736,19 +761,20 @@ function Home({ puzzle, today, stats, copied, onShare, onReview }) {
 
   const has = today && today.total > 0;
   const tier = has ? tierLabel(today.beat, today.total) : '';
-  const shareStr = has ? `Beat ${today.beat} of ${today.total} · ${tier}` : 'Played today';
+  const shareStr = has ? tierText(tier) : 'Played today';
 
   return (
     <section className="home">
       <p className="meta">
-        {shortDate(puzzle.dateStr)} &middot; no. {puzzle.issue}
+        <span className="meta__no">No.&nbsp;{puzzle.issue}</span>
+        <span className="meta__date">{longDate(puzzle.dateStr)}</span>
       </p>
 
       <p className="home__badge">
         <span className="home__check">✓</span> Solved today
       </p>
 
-      {has && <Tally beat={today.beat} total={today.total} tier={tier} />}
+      {has && <Percentile pct={percentile(today.beat, today.total)} tier={tier} />}
 
       <div className="home__stats">
         <div>
@@ -762,11 +788,11 @@ function Home({ puzzle, today, stats, copied, onShare, onReview }) {
           <span>played</span>
         </div>
         <div>
-          <b>{stats.avgTop != null ? `top ${stats.avgTop}%` : '—'}</b>
-          <span>average</span>
+          <b>{stats.avgPct != null ? ordinal(stats.avgPct) : '—'}</b>
+          <span>avg percentile</span>
         </div>
         <div>
-          <b>{stats.bestTop != null ? `top ${stats.bestTop}%` : '—'}</b>
+          <b>{stats.bestPct != null ? ordinal(stats.bestPct) : '—'}</b>
           <span>best</span>
         </div>
       </div>

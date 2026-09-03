@@ -5,10 +5,15 @@ function issueFromDate(date) {
   const b = Date.parse(String(date) + 'T00:00:00Z');
   return Number.isFinite(b) ? Math.max(1, Math.floor((b - a) / 86400000) + 1) : 1;
 }
+function ordinal(n) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+}
 
 export default function Landing({ date, beat }) {
   const issue = issueFromDate(date);
-  const n = beat != null && beat !== '' ? Math.max(0, Math.min(100, parseInt(beat, 10) || 0)) : null;
+  const n = beat != null && beat !== '' ? Math.min(99, Math.max(1, parseInt(beat, 10) || 0)) : null;
 
   return (
     <main className="page page--center">
@@ -18,7 +23,7 @@ export default function Landing({ date, beat }) {
 
         {n != null && (
           <p className="landing__brag">
-            Someone beat <b>{n}</b> of 100 today.
+            Someone hit the <b>{ordinal(n)}</b> percentile today.
             <br />
             Your turn.
           </p>
@@ -26,8 +31,8 @@ export default function Landing({ date, beat }) {
 
         <p className="landing__blurb">
           One Prisoner&rsquo;s Dilemma a day. Read the hidden strategy, choose{' '}
-          <b className="c">cooperate</b> or <b className="d">defect</b> each round, and see where
-          you land against a field of 100.
+          <b className="c">cooperate</b> or <b className="d">defect</b> each round, and see which
+          percentile you land in.
         </p>
 
         <a className="btn btn--accent" href="/">

@@ -7,13 +7,19 @@ function issueFromDate(date) {
   const b = Date.parse(String(date) + 'T00:00:00Z');
   return Number.isFinite(b) ? Math.max(1, Math.floor((b - a) / 86400000) + 1) : 1;
 }
+function ordinal(n) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+}
 
 export function generateMetadata({ params, searchParams }) {
   const issue = issueFromDate(params.date);
-  const b = searchParams?.b;
+  const raw = searchParams?.b;
+  const p = raw != null && raw !== '' ? Math.min(99, Math.max(1, parseInt(raw, 10) || 0)) : null;
   const desc =
-    b != null && b !== ''
-      ? `Someone beat ${b} of 100 on Daily Dilemma No. ${issue}. Can you do better?`
+    p != null
+      ? `Someone hit the ${ordinal(p)} percentile on Daily Dilemma No. ${issue}. Can you do better?`
       : 'One Prisoner’s Dilemma a day. Read the hidden strategy, out-score the field.';
   return {
     title: `Daily Dilemma No. ${issue}`,
