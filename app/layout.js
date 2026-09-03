@@ -1,12 +1,12 @@
 import './globals.css';
-import { Outfit } from 'next/font/google';
+import { Archivo_Black } from 'next/font/google';
 
-// used only for the masthead wordmark + the DD#N mark — a geometric,
-// constructed sans that matches the drawn "D" of the favicon, so the
-// brand reads as one shape. The rest of the UI rides the system stack.
-const sans = Outfit({
+// used only for the masthead wordmark + the DD#N mark — a heavy,
+// blocky geometric display face that reads as constructed / drawn,
+// matching the favicon "D". The rest of the UI rides the system stack.
+const sans = Archivo_Black({
   subsets: ['latin'],
-  weight: ['700', '800'],
+  weight: ['400'],
   variable: '--font-sans',
   display: 'swap',
 });
