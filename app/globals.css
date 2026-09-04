@@ -298,6 +298,7 @@ button.meta__dd:hover { opacity: 0.6; }
   display: flex;
   flex-direction: column;
   min-height: calc(100dvh - 9rem);
+  padding-bottom: var(--sp-7);
 }
 .play__stage {
   flex: 1;
